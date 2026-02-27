@@ -1,0 +1,19 @@
+{
+  "tasks": [
+    {
+      "id": "0005",
+      "status": "completed",
+      "current_run_id": null,
+      "last_error": "",
+      "hold_state": null
+    },
+    {
+      "id": "0006",
+      "status": "needs_approval",
+      "current_run_id": "20260225_135016_0006",
+      "last_run_id": "20260225_135016_0006",
+      "last_error": "ASK gate awaiting approval",
+      "hold_state": null
+    }
+  ]
+}

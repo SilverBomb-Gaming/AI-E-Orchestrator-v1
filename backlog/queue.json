@@ -1,0 +1,113 @@
+{
+  "tasks": [
+    {
+      "id": "0001",
+      "title": "Collect Unity Editor.log outputs and parse errors into structured JSON for morning review.",
+      "contract_path": "contracts/queue/0001_unity_log.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "last_run": "20260219_142929",
+      "last_run_status": "ALLOW",
+      "last_run_id": "20260219_142929_0001",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260219_142929_0001",
+      "current_run_id": null,
+      "last_error": "",
+      "resolution_note": "ASK cleared (regression test). Use 20260219_142745_0001 as new baseline."
+    },
+    {
+      "id": "0002",
+      "title": "Restore KBM input flow and bindings in Babylon.",
+      "contract_path": "contracts/queue/0002_kbm_input.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "last_run": "20260219_144701",
+      "last_run_status": "ALLOW",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260219_144701_0002",
+      "last_run_id": "20260219_144701_0002",
+      "current_run_id": null,
+      "last_error": ""
+    },
+    {
+      "id": "0003",
+      "title": "Automate map/scene discovery for selector.",
+      "contract_path": "contracts/queue/0003_map_scan.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "last_run": "20260220_135228",
+      "last_run_status": "ALLOW",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260220_135228_0003",
+      "last_run_id": "20260220_135228_0003",
+      "current_run_id": null,
+      "last_error": "",
+      "resolution_note": "Unity services/auth noise acknowledged (curl/access token)"
+    },
+    {
+      "id": "0004",
+      "title": "Stabilize the first-person viewmodel so weapon poses, camera offsets, and animation layers remain consistent between map loads.",
+      "contract_path": "contracts/queue/0004_viewmodel_fix.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "current_run_id": null,
+      "last_run": "20260223_134256",
+      "last_error": "",
+      "last_run_status": "ALLOW",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260223_134256_0004",
+      "last_run_id": "20260223_134256_0004",
+      "hold_state": "Temporarily completed to unblock play mode validation"
+    },
+    {
+      "id": "0005",
+      "title": "Prepare the groundwork for the wall-jump feature by describing current movement inputs, listing candidate surfaces, and outlining code touchpoints.",
+      "contract_path": "contracts/queue/0005_wall_jump.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "current_run_id": null,
+      "last_run": "20260224_014138",
+      "last_error": "",
+      "hold_state": "Temporarily completed to unblock play mode validation"
+    },
+    {
+      "id": "0006",
+      "title": "Validate that the CI Play Mode harness emits tick proofs and exits cleanly.",
+      "contract_path": "contracts/queue/0006_playmode_validation.md",
+      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+      "agents": [
+        "builder",
+        "qa",
+        "auditor"
+      ],
+      "status": "completed",
+      "current_run_id": null,
+      "last_run": "20260225_142054",
+      "last_error": "",
+      "last_run_status": "ALLOW",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260225_142054_0006",
+      "last_run_id": "20260225_142054_0006"
+    }
+  ]
+}

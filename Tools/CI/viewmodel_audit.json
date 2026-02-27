@@ -1,0 +1,2376 @@
+{
+  "generated_at": "2026-02-24T01:45:01+00:00",
+  "log_path": "E:\\AI projects 2025\\AI-E Orchestrator v1\\scripts\\logs\\editor.log",
+  "log_size_bytes": 327698,
+  "weapons": [
+    {
+      "line": 1684,
+      "context": "Audit",
+      "weapon": "AssaultRifle",
+      "prefab": "RuntimeRifleViewmodel",
+      "instance": "AssaultRifle_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 4,
+      "renderers": [
+        {
+          "line": 1701,
+          "context": "Renderer",
+          "weapon": "AssaultRifle",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/AssaultRifle_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.05,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.06,
+              0.2
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 1718,
+              "context": "Material",
+              "weapon": "AssaultRifle",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 1735,
+          "context": "Renderer",
+          "weapon": "AssaultRifle",
+          "name": "Stock",
+          "path": "ViewmodelAuditRoot/AssaultRifle_AuditInstance/Stock",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              -0.1
+            ],
+            "extents": [
+              0.03,
+              0.04,
+              0.1
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 1752,
+              "context": "Material",
+              "weapon": "AssaultRifle",
+              "renderer": "Stock",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 1769,
+          "context": "Renderer",
+          "weapon": "AssaultRifle",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/AssaultRifle_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.03,
+              0.45
+            ],
+            "extents": [
+              0.013,
+              0.013,
+              0.15
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 1786,
+              "context": "Material",
+              "weapon": "AssaultRifle",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 1803,
+          "context": "Renderer",
+          "weapon": "AssaultRifle",
+          "name": "Handguard",
+          "path": "ViewmodelAuditRoot/AssaultRifle_AuditInstance/Handguard",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              0.35
+            ],
+            "extents": [
+              0.03,
+              0.03,
+              0.075
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 1820,
+              "context": "Material",
+              "weapon": "AssaultRifle",
+              "renderer": "Handguard",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 1888,
+        "context": "Transform",
+        "weapon": "AssaultRifle",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 1906,
+          "context": "Audit",
+          "weapon": "AssaultRifle",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 1837,
+        "context": "Renderers",
+        "count": 4,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 1854,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 1942,
+      "context": "Audit",
+      "weapon": "LaserRifle",
+      "prefab": "RuntimeGenericViewmodel",
+      "instance": "LaserRifle_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 2,
+      "renderers": [
+        {
+          "line": 1959,
+          "context": "Renderer",
+          "weapon": "LaserRifle",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/LaserRifle_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.05,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.04,
+              0.2
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 1976,
+              "context": "Material",
+              "weapon": "LaserRifle",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 1993,
+          "context": "Renderer",
+          "weapon": "LaserRifle",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/LaserRifle_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.02,
+              0.45
+            ],
+            "extents": [
+              0.013,
+              0.013,
+              0.15
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2010,
+              "context": "Material",
+              "weapon": "LaserRifle",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 2078,
+        "context": "Transform",
+        "weapon": "LaserRifle",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 2096,
+          "context": "Audit",
+          "weapon": "LaserRifle",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 2027,
+        "context": "Renderers",
+        "count": 2,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 2044,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 2132,
+      "context": "Audit",
+      "weapon": "LMG",
+      "prefab": "RuntimeRifleViewmodel",
+      "instance": "LMG_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 4,
+      "renderers": [
+        {
+          "line": 2149,
+          "context": "Renderer",
+          "weapon": "LMG",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/LMG_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.05,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.06,
+              0.2
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2166,
+              "context": "Material",
+              "weapon": "LMG",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2183,
+          "context": "Renderer",
+          "weapon": "LMG",
+          "name": "Stock",
+          "path": "ViewmodelAuditRoot/LMG_AuditInstance/Stock",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              -0.1
+            ],
+            "extents": [
+              0.03,
+              0.04,
+              0.1
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2200,
+              "context": "Material",
+              "weapon": "LMG",
+              "renderer": "Stock",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2217,
+          "context": "Renderer",
+          "weapon": "LMG",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/LMG_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.03,
+              0.45
+            ],
+            "extents": [
+              0.013,
+              0.013,
+              0.15
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2234,
+              "context": "Material",
+              "weapon": "LMG",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2251,
+          "context": "Renderer",
+          "weapon": "LMG",
+          "name": "Handguard",
+          "path": "ViewmodelAuditRoot/LMG_AuditInstance/Handguard",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              0.35
+            ],
+            "extents": [
+              0.03,
+              0.03,
+              0.075
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2268,
+              "context": "Material",
+              "weapon": "LMG",
+              "renderer": "Handguard",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 2336,
+        "context": "Transform",
+        "weapon": "LMG",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 2354,
+          "context": "Audit",
+          "weapon": "LMG",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 2285,
+        "context": "Renderers",
+        "count": 4,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 2302,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 2390,
+      "context": "Audit",
+      "weapon": "Pistol",
+      "prefab": "RuntimePistolViewmodel",
+      "instance": "Pistol_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 3,
+      "renderers": [
+        {
+          "line": 2407,
+          "context": "Renderer",
+          "weapon": "Pistol",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/Pistol_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.1,
+              -0.05,
+              0.15
+            ],
+            "extents": [
+              0.025,
+              0.096,
+              0.136
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2424,
+              "context": "Material",
+              "weapon": "Pistol",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2441,
+          "context": "Renderer",
+          "weapon": "Pistol",
+          "name": "Handle",
+          "path": "ViewmodelAuditRoot/Pistol_AuditInstance/Handle",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.1,
+              -0.15,
+              0.05
+            ],
+            "extents": [
+              0.02,
+              0.07,
+              0.058
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2458,
+              "context": "Material",
+              "weapon": "Pistol",
+              "renderer": "Handle",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2475,
+          "context": "Renderer",
+          "weapon": "Pistol",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/Pistol_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.1,
+              -0.03,
+              0.3
+            ],
+            "extents": [
+              0.01,
+              0.01,
+              0.08
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2492,
+              "context": "Material",
+              "weapon": "Pistol",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 2560,
+        "context": "Transform",
+        "weapon": "Pistol",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 2578,
+          "context": "Audit",
+          "weapon": "Pistol",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 2509,
+        "context": "Renderers",
+        "count": 3,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 2526,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 2614,
+      "context": "Audit",
+      "weapon": "RocketLauncher",
+      "prefab": "RuntimeShotgunViewmodel",
+      "instance": "RocketLauncher_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 3,
+      "renderers": [
+        {
+          "line": 2631,
+          "context": "Renderer",
+          "weapon": "RocketLauncher",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/RocketLauncher_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.06,
+              -0.06,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.05,
+              0.175
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2648,
+              "context": "Material",
+              "weapon": "RocketLauncher",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2665,
+          "context": "Renderer",
+          "weapon": "RocketLauncher",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/RocketLauncher_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.03,
+              0.45
+            ],
+            "extents": [
+              0.015,
+              0.015,
+              0.14
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2682,
+              "context": "Material",
+              "weapon": "RocketLauncher",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2699,
+          "context": "Renderer",
+          "weapon": "RocketLauncher",
+          "name": "Pump",
+          "path": "ViewmodelAuditRoot/RocketLauncher_AuditInstance/Pump",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              0.35
+            ],
+            "extents": [
+              0.035,
+              0.03,
+              0.09
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2716,
+              "context": "Material",
+              "weapon": "RocketLauncher",
+              "renderer": "Pump",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 2784,
+        "context": "Transform",
+        "weapon": "RocketLauncher",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 2802,
+          "context": "Audit",
+          "weapon": "RocketLauncher",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 2733,
+        "context": "Renderers",
+        "count": 3,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 2750,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 2838,
+      "context": "Audit",
+      "weapon": "Shotgun",
+      "prefab": "RuntimeShotgunViewmodel",
+      "instance": "Shotgun_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 3,
+      "renderers": [
+        {
+          "line": 2855,
+          "context": "Renderer",
+          "weapon": "Shotgun",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/Shotgun_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.06,
+              -0.06,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.05,
+              0.175
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2872,
+              "context": "Material",
+              "weapon": "Shotgun",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2889,
+          "context": "Renderer",
+          "weapon": "Shotgun",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/Shotgun_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.03,
+              0.45
+            ],
+            "extents": [
+              0.015,
+              0.015,
+              0.14
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2906,
+              "context": "Material",
+              "weapon": "Shotgun",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 2923,
+          "context": "Renderer",
+          "weapon": "Shotgun",
+          "name": "Pump",
+          "path": "ViewmodelAuditRoot/Shotgun_AuditInstance/Pump",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              0.35
+            ],
+            "extents": [
+              0.035,
+              0.03,
+              0.09
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 2940,
+              "context": "Material",
+              "weapon": "Shotgun",
+              "renderer": "Pump",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 3008,
+        "context": "Transform",
+        "weapon": "Shotgun",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 3026,
+          "context": "Audit",
+          "weapon": "Shotgun",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 2957,
+        "context": "Renderers",
+        "count": 3,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 2974,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 3062,
+      "context": "Audit",
+      "weapon": "SMG",
+      "prefab": "RuntimeRifleViewmodel",
+      "instance": "SMG_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 4,
+      "renderers": [
+        {
+          "line": 3079,
+          "context": "Renderer",
+          "weapon": "SMG",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/SMG_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.05,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.06,
+              0.2
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3096,
+              "context": "Material",
+              "weapon": "SMG",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 3113,
+          "context": "Renderer",
+          "weapon": "SMG",
+          "name": "Stock",
+          "path": "ViewmodelAuditRoot/SMG_AuditInstance/Stock",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              -0.1
+            ],
+            "extents": [
+              0.03,
+              0.04,
+              0.1
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3130,
+              "context": "Material",
+              "weapon": "SMG",
+              "renderer": "Stock",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 3147,
+          "context": "Renderer",
+          "weapon": "SMG",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/SMG_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.03,
+              0.45
+            ],
+            "extents": [
+              0.013,
+              0.013,
+              0.15
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3164,
+              "context": "Material",
+              "weapon": "SMG",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 3181,
+          "context": "Renderer",
+          "weapon": "SMG",
+          "name": "Handguard",
+          "path": "ViewmodelAuditRoot/SMG_AuditInstance/Handguard",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.08,
+              0.35
+            ],
+            "extents": [
+              0.03,
+              0.03,
+              0.075
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3198,
+              "context": "Material",
+              "weapon": "SMG",
+              "renderer": "Handguard",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 3266,
+        "context": "Transform",
+        "weapon": "SMG",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 3284,
+          "context": "Audit",
+          "weapon": "SMG",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 3215,
+        "context": "Renderers",
+        "count": 4,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 3232,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    },
+    {
+      "line": 3320,
+      "context": "Audit",
+      "weapon": "SniperRifle",
+      "prefab": "RuntimeGenericViewmodel",
+      "instance": "SniperRifle_AuditInstance",
+      "parent": "ViewmodelAuditRoot",
+      "active": true,
+      "layer": {
+        "name": "Default",
+        "index": 0
+      },
+      "holder": "ViewmodelAudit",
+      "renderer_count": 2,
+      "renderers": [
+        {
+          "line": 3337,
+          "context": "Renderer",
+          "weapon": "SniperRifle",
+          "name": "Body",
+          "path": "ViewmodelAuditRoot/SniperRifle_AuditInstance/Body",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.05,
+              0.2
+            ],
+            "extents": [
+              0.04,
+              0.04,
+              0.2
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3354,
+              "context": "Material",
+              "weapon": "SniperRifle",
+              "renderer": "Body",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        },
+        {
+          "line": 3371,
+          "context": "Renderer",
+          "weapon": "SniperRifle",
+          "name": "Barrel",
+          "path": "ViewmodelAuditRoot/SniperRifle_AuditInstance/Barrel",
+          "type": "MeshRenderer",
+          "enabled": true,
+          "go_active": true,
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "sorting_layer": {
+            "name": "Default",
+            "id": 0
+          },
+          "sorting_order": 0,
+          "shadow_casting": "On",
+          "receive_shadows": true,
+          "bounds": {
+            "center": [
+              0.05,
+              -0.02,
+              0.45
+            ],
+            "extents": [
+              0.013,
+              0.013,
+              0.15
+            ]
+          },
+          "material_count": 1,
+          "materials": [
+            {
+              "line": 3388,
+              "context": "Material",
+              "weapon": "SniperRifle",
+              "renderer": "Barrel",
+              "name": "Universal Render Pipeline/Lit",
+              "shader": "Universal Render Pipeline/Lit",
+              "render_queue": 2000,
+              "has_color": true,
+              "color_alpha": 1.0,
+              "surface": 0.0,
+              "alpha_clip": 0.0,
+              "cutoff": 0.5,
+              "zwrite": 1.0
+            }
+          ]
+        }
+      ],
+      "notes": [],
+      "issues": [],
+      "transform": {
+        "line": 3456,
+        "context": "Transform",
+        "weapon": "SniperRifle",
+        "active": true,
+        "parent": "ViewmodelAuditRoot",
+        "world_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "local_scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "local_to_main": [
+          0.0,
+          0.0,
+          0.5
+        ],
+        "dist_from_main": 0.5
+      },
+      "cameras": [
+        {
+          "line": 3474,
+          "context": "Audit",
+          "weapon": "SniperRifle",
+          "name": "ViewmodelAuditCamera",
+          "active": true,
+          "is_main": false,
+          "is_viewmodel": true,
+          "near_clip": 0.01,
+          "field_of_view": 60.0,
+          "orthographic": false,
+          "culling_includes_viewmodel": true,
+          "culling_includes_renderer_layers": true,
+          "culling_mask": {
+            "raw": "0xFFFFFFFF",
+            "value": 4294967295
+          },
+          "culling_mask_layers": [
+            "Default(0)",
+            "TransparentFX(1)",
+            "Ignore Raycast(2)",
+            "Default(3)",
+            "Water(4)",
+            "UI(5)",
+            "Default(6)",
+            "Default(7)",
+            "Default(8)",
+            "Default(9)",
+            "Default(10)",
+            "Default(11)",
+            "Default(12)",
+            "Default(13)",
+            "Default(14)",
+            "Default(15)",
+            "Default(16)",
+            "Default(17)",
+            "Default(18)",
+            "Default(19)",
+            "Default(20)",
+            "Default(21)",
+            "Default(22)",
+            "Default(23)",
+            "Default(24)",
+            "Default(25)",
+            "Default(26)",
+            "Default(27)",
+            "Default(28)",
+            "Default(29)",
+            "Default(30)",
+            "Default(31)"
+          ],
+          "layer": {
+            "name": "Default",
+            "index": 0
+          },
+          "render_path": "Forward",
+          "render_type": "pipeline_unknown",
+          "distance": 0.5,
+          "relative_z": 0.5,
+          "behind_camera": false
+        }
+      ],
+      "heuristics": [],
+      "renderer_summary": {
+        "line": 3405,
+        "context": "Renderers",
+        "count": 2,
+        "unique_layers": [
+          {
+            "name": "Default",
+            "index": 0
+          }
+        ],
+        "any_disabled": false,
+        "any_material_missing": false,
+        "any_alpha_zero": false
+      },
+      "layers_summary": {
+        "line": 3422,
+        "context": "Layers",
+        "root_layer": {
+          "name": "Default",
+          "index": 0
+        },
+        "camera_includes_root": true,
+        "renderer_layers_included": true
+      }
+    }
+  ],
+  "warnings": [],
+  "drift": [],
+  "issue_counts": {},
+  "pipeline": {
+    "line": 1667,
+    "context": "Pipeline",
+    "has_pipeline": true,
+    "pipeline_asset": "PC_RPAsset",
+    "pipeline_type": "UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset",
+    "renderer_asset": "<none>",
+    "renderer_type": "<none>",
+    "reference_camera": "ViewmodelAuditCamera",
+    "camera_render_type": "pipeline_unknown"
+  }
+}

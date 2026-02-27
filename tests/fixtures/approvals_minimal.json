@@ -1,0 +1,14 @@
+{
+  "approvals": [
+    {
+      "task_id": "0006",
+      "run_id": "",
+      "notes": "Manual override"
+    },
+    {
+      "task_id": "",
+      "run_id": "20260225_135016_0006",
+      "notes": "Specific run approval"
+    }
+  ]
+}

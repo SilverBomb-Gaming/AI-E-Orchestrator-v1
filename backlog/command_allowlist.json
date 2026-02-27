@@ -1,0 +1,10 @@
+{
+  "_comment": "Populate these lists with trusted commands or prefixes. Empty lists mean commands will be blocked until explicitly allowed.",
+  "exact": [
+    "powershell.exe -nologo -noprofile -command \"$workspace = get-location; $unityexe = 'd:\\program files\\unity hub\\editor\\6000.2.8f1\\editor\\unity.exe'; if (-not (test-path $unityexe)) { throw 'unity editor not found at expected path.' }; $projectpath = 'e:\\ai projects 2025\\babylon ver 2'; $logdir = join-path $workspace 'scripts\\logs'; new-item -itemtype directory -force -path $logdir | out-null; $logfile = join-path $logdir 'editor.log'; & $unityexe -batchmode -nographics -quit -projectpath $projectpath -logfile $logfile; $waited = 0; while (($waited -lt 30) -and (-not (test-path $logfile))) { start-sleep -seconds 1; $waited++; } if (-not (test-path $logfile)) { throw 'unity did not generate editor.log'; }\"",
+    "powershell.exe -NoLogo -NoProfile -Command \"$workspace = Get-Location; $unityExe = 'D:\\Program Files\\Unity Hub\\Editor\\6000.2.8f1\\Editor\\Unity.exe'; if (-not (Test-Path $unityExe)) { throw 'Unity editor not found at expected path.' }; $projectPath = 'E:\\AI projects 2025\\BABYLON VER 2'; $logDir = Join-Path $workspace 'scripts\\logs'; New-Item -ItemType Directory -Force -Path $logDir | Out-Null; $logFile = Join-Path $logDir 'Editor.log'; & $unityExe -batchmode -nographics -projectPath $projectPath -executeMethod Babylon.CI.PlaymodeHarness.RunFromCommandLine -logFile $logFile; $waited = 0; while (($waited -lt 45) -and (-not (Test-Path $logFile))) { Start-Sleep -Seconds 1; $waited++; } if (-not (Test-Path $logFile)) { throw 'Unity did not generate Editor.log'; }\"",
+    "powershell.exe -nologo -noprofile -command \"$logpath = 'scripts\\logs\\editor.log'; if (-not (test-path $logpath)) { throw 'log missing'; } $size = (get-item $logpath).length; write-output ('unity log captured: {0} bytes' -f $size);\"",
+    "powershell.exe -NoLogo -NoProfile -Command \"& python '.\\Tools\\CI\\viewmodel_audit.py' --output 'Tools/CI/viewmodel_audit.json'\""
+  ],
+  "prefix": []
+}

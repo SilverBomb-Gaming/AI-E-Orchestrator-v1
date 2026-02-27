@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-02-20T14:53:45+00:00",
+  "log_path": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260220_135228_0003\\artifacts\\scripts\\logs\\Editor.log",
+  "log_size_bytes": 25639,
+  "weapons": [],
+  "warnings": [
+    "No [WEAPON] diagnostics were found in the provided log."
+  ],
+  "drift": [],
+  "issue_counts": {}
+}

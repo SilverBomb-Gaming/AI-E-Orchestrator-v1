@@ -1,0 +1,55 @@
+{
+  "agents": [
+    {
+      "id": "builder",
+      "role": "builder",
+      "description": "Implements scoped code changes and instrumentation for automation tasks.",
+      "allowed_actions": ["read_repo", "write_patch", "run_tests", "generate_report"],
+      "scope_allowlist": [
+        "scripts/",
+        "Tools/CI/",
+        "Documentation/automation/",
+        "Assets/Scripts/Gameplay/Viewmodel/",
+        "Assets/Scripts/Weapons/",
+        "Assets/Animations/Viewmodel/"
+      ],
+      "scope_blocklist": ["_LEGACY_DO_NOT_TOUCH/"],
+      "risk_budget": {"max_files_changed": 4, "max_loc_changed": 200},
+      "outputs_required": ["patch", "logs", "report"],
+      "stop_conditions": {"max_attempts": 3, "time_cap_minutes": 45}
+    },
+    {
+      "id": "qa",
+      "role": "qa",
+      "description": "Validates diffs, runs smoke tests, and confirms log coverage.",
+      "allowed_actions": ["read_repo", "run_tests", "generate_report"],
+      "scope_allowlist": ["scripts/", "Tools/CI/"],
+      "scope_blocklist": ["Engine/", "Gameplay/"] ,
+      "risk_budget": {"max_files_changed": 2, "max_loc_changed": 80},
+      "outputs_required": ["logs", "report"],
+      "stop_conditions": {"max_attempts": 2, "time_cap_minutes": 30}
+    },
+    {
+      "id": "auditor",
+      "role": "auditor",
+      "description": "Scores gates, enforces policy, and writes the morning summary.",
+      "allowed_actions": ["read_repo", "generate_report"],
+      "scope_allowlist": ["runs/", "contracts/", "reports/"],
+      "scope_blocklist": ["Gameplay/", "Assets/"] ,
+      "risk_budget": {"max_files_changed": 0, "max_loc_changed": 0},
+      "outputs_required": ["report"],
+      "stop_conditions": {"max_attempts": 1, "time_cap_minutes": 15}
+    },
+    {
+      "id": "researcher",
+      "role": "researcher",
+      "description": "Collects context, log histories, and supporting evidence.",
+      "allowed_actions": ["read_repo", "generate_report"],
+      "scope_allowlist": ["logs/", "Docs/", "scripts/"],
+      "scope_blocklist": ["Gameplay/", "_LEGACY_DO_NOT_TOUCH/"],
+      "risk_budget": {"max_files_changed": 1, "max_loc_changed": 10},
+      "outputs_required": ["report"],
+      "stop_conditions": {"max_attempts": 2, "time_cap_minutes": 20}
+    }
+  ]
+}
