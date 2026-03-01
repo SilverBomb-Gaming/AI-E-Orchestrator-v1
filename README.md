@@ -87,6 +87,8 @@ Queue entries now distinguish between execution outcomes:
 - `python scripts/approve_run.py --list` prints queued approvals. Add a new approval with `--task-id`, `--run-id`, and optional `--notes`; the CLI writes through the same `OperatorApprovalStore` used by the runner.
 - `python scripts/operator_dashboard.py` launches a lightweight Tkinter UI that shows queue progress, recent artifacts, pending approvals, and exposes a one-click "Approve" button wired to the same store.
 - `python tools/queue_ops.py list|reset|resume|abort|delete|unblock` provides guard-railed queue recovery actions. Every write makes a timestamped backup of `backlog/queue.json` (and `approvals.json` when touched), all mutating commands accept `--dry-run`, and destructive flags such as `--purge-runs` require `--force` so operators can safely recover stuck tasks without hand-editing JSON.
+- `python -m orchestrator.night_cycle --dry-run --max-runs 3 --pack contracts/validation_pack` runs the synthetic validation pack in snapshot mode, logging results into `runs_index.jsonl` and `reports/night_cycle_*.md` without mutating the main queue.
+- `python -m orchestrator.night_cycle --max-runs 3 --max-minutes 10` performs a bounded depth run against the real queue (stopping on ASK/BLOCK by default). Use `--task-filter`, `--pack-id`, or `--cooldown-seconds` to further constrain automation.
 - `python tools/verify_stability_core.py` runs the local file/layout verifier (add `--json` for machine-readable output) so operators can confirm Stability Core v1 prerequisites before queue work begins.
 
 These tools eliminate ad-hoc JSON editing while keeping the audit trail centralized.

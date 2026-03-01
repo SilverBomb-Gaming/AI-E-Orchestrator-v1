@@ -1,0 +1,46 @@
+{
+  "pack_id": "validation_pack_v1",
+  "description": "Deterministic scenarios that exercise ALLOW/ASK/DENY/TIMEOUT/RETRY flows without touching production queues.",
+  "tasks": [
+    {
+      "id": "V001",
+      "title": "Validation Pack — Guaranteed ALLOW",
+      "contract_path": "contracts/validation_pack/V001_allow.md",
+      "scenario": "allow",
+      "notes": "Completes successfully after emitting markers.",
+      "status_sequence": ["ALLOW"]
+    },
+    {
+      "id": "V002",
+      "title": "Validation Pack — Guaranteed ASK",
+      "contract_path": "contracts/validation_pack/V002_ask.md",
+      "scenario": "ask",
+      "notes": "Requires operator approval; used to verify stop_on_ask.",
+      "status_sequence": ["ASK"]
+    },
+    {
+      "id": "V003",
+      "title": "Validation Pack — Controlled DENY",
+      "contract_path": "contracts/validation_pack/V003_deny.md",
+      "scenario": "deny",
+      "notes": "Triggers a deliberate BLOCK to test stop_on_deny.",
+      "status_sequence": ["BLOCK"]
+    },
+    {
+      "id": "V004",
+      "title": "Validation Pack — Timeout Guard",
+      "contract_path": "contracts/validation_pack/V004_timeout.md",
+      "scenario": "timeout",
+      "notes": "Simulates a timeout so the cycle records FAILED/timeout.",
+      "status_sequence": ["FAILED"]
+    },
+    {
+      "id": "V005",
+      "title": "Validation Pack — Retry Exhaust",
+      "contract_path": "contracts/validation_pack/V005_retry_exhaust.md",
+      "scenario": "retry_exhaust",
+      "notes": "Fails repeatedly so retry-per-task logic can be validated.",
+      "status_sequence": ["FAILED", "FAILED", "FAILED"]
+    }
+  ]
+}

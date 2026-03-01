@@ -253,11 +253,14 @@ class TaskRunner:
         agent_registry: AgentRegistry,
         workspace_manager: WorkspaceManager,
         gatekeeper: Gatekeeper,
+        *,
+        retention_enabled: bool = True,
     ) -> None:
         self.config = config
         self.agent_registry = agent_registry
         self.workspace_manager = workspace_manager
         self.gatekeeper = gatekeeper
+        self.retention_enabled = retention_enabled
         self.log_parser = UnityLogParser()
         self.error_classifier = UnityErrorClassifier()
         self.approval_store = OperatorApprovalStore(self.config.approvals_path)
@@ -1160,8 +1163,8 @@ class TaskRunner:
         ]
         bundles.sort(key=lambda entry: entry.name)
         total = len(bundles)
-        if total <= self.MAX_RUN_BUNDLES:
-            retention["kept"] = total
+        retention["kept"] = total
+        if not self.retention_enabled or total <= self.MAX_RUN_BUNDLES:
             return retention
         delete_candidates = [entry for entry in bundles if entry.name != current_run_id]
         extra = max(total - self.MAX_RUN_BUNDLES, 0)

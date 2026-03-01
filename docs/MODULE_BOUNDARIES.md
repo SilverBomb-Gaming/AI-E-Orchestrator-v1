@@ -4,6 +4,7 @@ AI-E Orchestrator is converging on four long-lived domains. Locking the boundari
 
 ## 1. Core
 - **Includes**: `orchestrator/` package, gate logic, regression/diff tooling, contract loading, retention policies, approvals store, workspace lifecycle, and policy enforcement.
+- **Automation**: `orchestrator/night_cycle.py` lives here; Night Cycle drives unattended execution but never mutates adapters/workloads.
 - **Responsibilities**: deterministic execution, evidence capture, queue consumption, gate scoring, and policy verdicts.
 - **Excludes**: UI layers, incident tooling, workload-specific scripts, or adapters for third-party engines.
 

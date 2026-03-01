@@ -1,0 +1,18 @@
+{
+  "tasks": [
+    {
+      "id": "0001",
+      "status": "completed",
+      "current_run_id": null,
+      "last_error": "",
+      "hold_state": null
+    },
+    {
+      "id": "0002",
+      "status": "completed",
+      "current_run_id": null,
+      "last_error": "",
+      "hold_state": null
+    }
+  ]
+}

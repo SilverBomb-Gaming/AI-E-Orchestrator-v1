@@ -1,0 +1,19 @@
+{
+  "tasks": [
+    {
+      "id": "0004",
+      "status": "needs_approval",
+      "current_run_id": "20260227_010101_0004",
+      "last_run_id": "20260227_010101_0004",
+      "last_error": "ASK verdict requires approval",
+      "hold_state": null
+    },
+    {
+      "id": "0005",
+      "status": "pending",
+      "current_run_id": null,
+      "last_error": "",
+      "hold_state": null
+    }
+  ]
+}
