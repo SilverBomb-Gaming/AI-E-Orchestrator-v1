@@ -114,13 +114,13 @@
         "qa",
         "auditor"
       ],
-      "status": "failed",
+      "status": "pending",
       "current_run_id": null,
-      "last_run": "20260302_150541",
-      "last_error": "Command 'Babylon Smoke Marker' is not on the allowlist (E:\\AI projects 2025\\AI-E Orchestrator v1\\backlog\\command_allowlist.json).",
-      "last_run_status": "ERROR",
-      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260302_150541_0007",
-      "last_run_id": "20260302_150541_0007"
+      "last_run": "",
+      "last_error": "",
+      "last_run_status": "",
+      "last_run_dir": "",
+      "last_run_id": ""
     }
   ]
 }

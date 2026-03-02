@@ -84,7 +84,13 @@
         "qa",
         "auditor"
       ],
-      "status": "pending"
+      "status": "aborted",
+      "current_run_id": null,
+      "last_run": "20260227_153436",
+      "last_error": "Aborted via queue_ops",
+      "last_run_status": "ABORTED",
+      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260227_153436_0005",
+      "last_run_id": "20260227_153436_0005"
     },
     {
       "id": "0006",
@@ -103,24 +109,6 @@
       "last_run_status": "ALLOW",
       "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260225_142054_0006",
       "last_run_id": "20260225_142054_0006"
-    },
-    {
-      "id": "0007",
-      "title": "Run the BABYLON smoke workload to validate CI health.",
-      "contract_path": "contracts/workloads/babylon_smoke.md",
-      "target_repo": "E:/AI projects 2025/BABYLON VER 2",
-      "agents": [
-        "builder",
-        "qa",
-        "auditor"
-      ],
-      "status": "failed",
-      "current_run_id": null,
-      "last_run": "20260302_150541",
-      "last_error": "Command 'Babylon Smoke Marker' is not on the allowlist (E:\\AI projects 2025\\AI-E Orchestrator v1\\backlog\\command_allowlist.json).",
-      "last_run_status": "ERROR",
-      "last_run_dir": "E:\\AI projects 2025\\AI-E Orchestrator v1\\runs\\20260302_150541_0007",
-      "last_run_id": "20260302_150541_0007"
     }
   ]
 }

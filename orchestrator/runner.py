@@ -167,7 +167,18 @@ class QueueManager:
                     record["target_repo"] = defaults.get("target_repo")
                     dirty = True
         ordered_ids = sorted(set(discovered), key=lambda value: self._safe_int(value))
+        ordered_set = set(ordered_ids)
         new_task_list = [tasks_by_id[task_id] for task_id in ordered_ids]
+
+        # Preserve tasks that were curated manually (no backing contract file).
+        original_order = [task.get("id") for task in self._payload.get("tasks", [])]
+        for task_id in original_order:
+            if not task_id or task_id in ordered_set:
+                continue
+            record = tasks_by_id.get(task_id)
+            if record:
+                new_task_list.append(record)
+
         if new_task_list != self._payload.get("tasks", []):
             dirty = True
         if dirty:
