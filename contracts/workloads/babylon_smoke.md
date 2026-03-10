@@ -11,7 +11,7 @@ Definition of Done:
   - Mirror the log into the run bundle artifacts.
 Commands to Run:
   - name: Babylon Smoke Marker
-    shell: "powershell.exe -NoLogo -NoProfile -Command \"New-Item -ItemType Directory -Force -Path 'scripts\\logs' | Out-Null; $stamp = (Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ'); $content = 'BABYLON_SMOKE ' + $stamp; Set-Content -Path 'scripts\\logs\\babylon_smoke.txt' -Value $content; Write-Output $content;\""
+    shell: "powershell.exe -NoLogo -NoProfile -Command \"New-Item -ItemType Directory -Force -Path 'scripts\\logs' | Out-Null; $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'); $content = 'BABYLON_SMOKE ' + $stamp; Set-Content -Path 'scripts\\logs\\babylon_smoke.txt' -Value $content; Write-Output $content;\""
     type: test
 Artifacts Required:
   - scripts/logs/babylon_smoke.txt

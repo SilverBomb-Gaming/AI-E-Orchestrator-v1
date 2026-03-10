@@ -9,14 +9,18 @@ from Tools import queue_ops
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
+pytestmark = pytest.mark.fast
+
 
 @pytest.fixture()
 def sandbox(tmp_path, monkeypatch):
     def _setup(queue_fixture="queue_minimal.json", approvals_fixture="approvals_minimal.json"):
         queue_path = tmp_path / "queue.json"
         approvals_path = tmp_path / "approvals.json"
+        baselines_path = tmp_path / "baselines.json"
         queue_path.write_text((FIXTURE_DIR / queue_fixture).read_text(), encoding="utf-8")
         approvals_path.write_text((FIXTURE_DIR / approvals_fixture).read_text(), encoding="utf-8")
+        baselines_path.write_text(json.dumps({"baselines": []}), encoding="utf-8")
         runs_dir = tmp_path / "runs"
         runs_dir.mkdir()
         (runs_dir / "20260225_135016_0006").mkdir()
@@ -25,6 +29,7 @@ def sandbox(tmp_path, monkeypatch):
         monkeypatch.setattr(queue_ops, "QUEUE_PATH", queue_path)
         monkeypatch.setattr(queue_ops, "APPROVALS_PATH", approvals_path)
         monkeypatch.setattr(queue_ops, "RUNS_DIR", runs_dir)
+        monkeypatch.setattr(queue_ops, "BASELINES_PATH", baselines_path)
         return queue_path, approvals_path, runs_dir
 
     return _setup
@@ -139,3 +144,30 @@ def test_resume_dry_run_leaves_files_untouched(sandbox):
     queue_ops.cmd_resume(args)
     assert queue_before == queue_path.read_text(encoding="utf-8")
     assert approvals_before == approvals_path.read_text(encoding="utf-8")
+
+
+def test_baseline_show_handles_empty_store(sandbox, capsys):
+    sandbox()
+    exit_code = queue_ops.cmd_baseline_show(argparse.Namespace())
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "No baselines recorded." in captured.out
+
+
+def test_baseline_set_records_entry(sandbox):
+    queue_path, _, runs_dir = sandbox()
+    run_id = "20260225_135016_0006"
+    run_meta_path = runs_dir / run_id / "run_meta.json"
+    run_meta_path.write_text(
+        json.dumps({"task_id": "0006", "run_id": run_id}),
+        encoding="utf-8",
+    )
+    args = argparse.Namespace(run_id=run_id, tag="stable_core", dry_run=False)
+    queue_ops.cmd_baseline_set(args)
+    baselines_path = queue_path.parent / "baselines.json"
+    payload = json.loads(baselines_path.read_text(encoding="utf-8"))
+    assert payload["baselines"]
+    record = payload["baselines"][0]
+    assert record["task_id"] == "0006"
+    assert record["run_id"] == run_id
+    assert record["tag"] == "stable_core"

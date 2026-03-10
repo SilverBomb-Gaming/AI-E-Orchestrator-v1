@@ -11,6 +11,8 @@ from orchestrator.validation_pack import prepare_pack_context
 ROOT = Path(__file__).resolve().parents[1]
 PACK_DIR = ROOT / "contracts" / "validation_pack"
 
+pytestmark = pytest.mark.fast
+
 
 class FakeClock:
     def __init__(self) -> None:

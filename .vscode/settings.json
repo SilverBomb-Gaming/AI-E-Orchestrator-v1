@@ -1,0 +1,14 @@
+{
+    "dotnet.preferCSharpExtension":  true,
+    "python.defaultInterpreterPath":  ".venv-2\\Scripts\\python.exe",
+    "python.terminal.activateEnvironment":  true,
+    "python.terminal.activateEnvInCurrentTerminal":  false,
+    "python.createEnvironment.trigger":  "off",
+    "terminal.integrated.env.windows":  {
+                                            "VIRTUAL_ENV":  "${workspaceFolder}\\.venv-2",
+                                            "PATH":  "${workspaceFolder}\\.venv-2\\Scripts;${env:PATH}"
+                                        },
+    "python.venvFolders":  [
+                               ".venv-2"
+                           ]
+}

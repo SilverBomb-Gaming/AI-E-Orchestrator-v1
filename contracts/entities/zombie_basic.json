@@ -1,0 +1,70 @@
+{
+  "task_id": "ENTITY_0001",
+  "type": "entity_generation",
+  "entity_type": "zombie_basic",
+  "entity_name": "ZombieBasic",
+  "category": "npc",
+  "engine": "unity",
+  "objective": "Generate and validate the ZombieBasic NPC prefab inside a disposable test scene",
+  "target_repo": "E:/AI projects 2025/BABYLON VER 2",
+  "allowed_scope": [
+    "Assets/AI_E_TestScenes/",
+    "Assets/Prefabs/Enemies/",
+    "Assets/3D Assets/Characters/",
+    "Assets/Editor/CI/",
+    "Tools/",
+    "scripts/",
+    "entity/"
+  ],
+  "requirements": {
+    "components": [
+      "Animator",
+      "CapsuleCollider",
+      "NavMeshAgent"
+    ],
+    "scripts": [
+      "ZombieAI.cs"
+    ]
+  },
+  "validation": {
+    "spawn_test": true,
+    "movement_test": true,
+    "component_test": true,
+    "timeout_sec": 60
+  },
+  "workflow": {
+    "prefab": {
+      "script": "Tools/run_unity_create_zombie_prefab.ps1",
+      "source_asset": "Assets/3D Assets/Characters/Zombies/Meshy_AI_biped (zombie 001)/Meshy_AI_biped/Meshy_AI_Character_output.glb",
+      "animation_asset": "Assets/3D Assets/Characters/Zombies/Meshy_AI_biped (zombie 001)/Meshy_AI_biped/Meshy_AI_Meshy_Merged_Animations.glb",
+      "prefab_output_path": "Assets/Prefabs/Enemies/Zombie_001.prefab",
+      "artifact": "scripts/logs/zombie_prefab_creation.json",
+      "log": "scripts/logs/zombie_prefab_creation.log",
+      "timeout_sec": 900
+    },
+    "preview": {
+      "script": "Tools/run_unity_zombie_prefab_preview.ps1",
+      "prefab_path": "Assets/Prefabs/Enemies/Zombie_001.prefab",
+      "preview_png": "scripts/logs/zombie_prefab_preview.png",
+      "artifact": "scripts/logs/zombie_prefab_preview.json",
+      "log": "scripts/logs/zombie_prefab_preview.log",
+      "width": 1280,
+      "height": 720,
+      "timeout_sec": 900
+    }
+  },
+  "artifacts": [
+    "entity/entity_summary.json",
+    "entity/entity_validation.json",
+    "entity/entity_prefab.json",
+    "entity/entity_preview.json",
+    "entity/entity_preview.png",
+    "entity/Editor.log",
+    "scripts/logs/zombie_prefab_creation.json",
+    "scripts/logs/zombie_prefab_preview.json",
+    "scripts/logs/zombie_prefab_preview.png",
+    "scripts/logs/Editor.log"
+  ],
+  "execution_mode": "playmode_required",
+  "requires_unity_log": true
+}

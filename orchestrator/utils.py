@@ -30,8 +30,31 @@ def write_json(path: Path, payload: Dict[str, Any]) -> None:
 
 def read_json(path: Path, default: Dict[str, Any] | None = None) -> Dict[str, Any]:
     if not path.exists():
-        return default.copy() if default else {}
-    return json.loads(path.read_text(encoding="utf-8"))
+        return _clone_default(default)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return _clone_default(default)
+    if not raw.strip():
+        return _clone_default(default)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(f"[orchestrator] Warning: invalid JSON at {path}: {exc}")
+        return _clone_default(default)
+
+
+def _clone_default(default: Dict[str, Any] | None) -> Dict[str, Any]:
+    if default is None:
+        return {}
+    if isinstance(default, dict):
+        return default.copy()
+    if hasattr(default, "copy"):
+        try:
+            return default.copy()
+        except Exception:
+            pass
+    return {}
 
 
 def safe_write_text(path: Path, content: str) -> None:
@@ -68,3 +91,22 @@ def within_scope(paths: Iterable[str], allowlist: Iterable[str]) -> bool:
         if not any(normalized.startswith(prefix) for prefix in normalized_allowlist):
             return False
     return True
+
+
+def append_live_event(payload: Dict[str, Any], root: Path | None = None) -> None:
+    try:
+        record = dict(payload or {})
+    except TypeError:
+        return
+    if "ts_utc" not in record:
+        record["ts_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    destination_root = Path(root) if root else Path(__file__).resolve().parents[1]
+    destination = destination_root / "reports" / "live_events.jsonl"
+    try:
+        ensure_dir(destination.parent)
+        with destination.open("a", encoding="utf-8") as handle:
+            json.dump(record, handle)
+            handle.write("\n")
+    except Exception:
+        # Event emission must never block orchestration.
+        return

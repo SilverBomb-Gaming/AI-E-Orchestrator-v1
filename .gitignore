@@ -1,13 +1,24 @@
+# Runtime artifacts
+runs/
+workspaces/
+reports/
+*.log
+*.jsonl
+
+# Queue backups
+backlog/*.bak.*
+
+# Temporary env diagnostics
+env-check.txt
+env-path-exists.txt
+temp_envtest.ps1
+
+# Python environments
+.venv*
 __pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-.env
-runs/*
-!runs/.gitkeep
-workspaces/*
-!workspaces/.gitkeep
-logs/
-.idea/
-.vscode/
-.DS_Store
+
+# Unity temp
+Library/
+Temp/
+Obj/
+Logs/

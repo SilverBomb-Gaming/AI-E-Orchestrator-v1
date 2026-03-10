@@ -47,6 +47,8 @@ def build_diff_report(
     current_summary_path: Optional[Path],
     current_classification_path: Optional[Path] = None,
     regression_config: Optional[Dict[str, any]] = None,
+    baseline_compare: bool = False,
+    baseline_tag: Optional[str] = None,
 ) -> Tuple[Dict[str, any], RegressionGate]:
     previous_summary = _load_unity_summary(previous_run_dir)
     current_summary = _load_file(current_summary_path) if current_summary_path else {}
@@ -119,6 +121,8 @@ def build_diff_report(
     report = {
         "previous_bundle_id": previous_run_dir.name,
         "current_bundle_id": current_run_dir.name,
+        "comparison_mode": "baseline" if baseline_compare else "previous",
+        "baseline_tag": baseline_tag or "",
         "error_count_delta": error_delta,
         "warning_count_delta": warning_delta,
         "new_error_signatures": new_signatures,
@@ -155,6 +159,7 @@ def build_diff_report(
         no_change_preference=no_change_pref,
         actionable_error_delta=actionable_error_delta,
         classification_applied=classification_applied,
+        baseline_compare=baseline_compare,
     )
     regression_gate = RegressionGate(verdict=regression_verdict, reasons=reasons)
     report["regression_verdict"] = regression_verdict
@@ -195,6 +200,7 @@ def _regression_decision(
     no_change_preference: str,
     actionable_error_delta: Optional[int],
     classification_applied: bool,
+    baseline_compare: bool = False,
 ) -> Tuple[str, List[str]]:
     reasons: List[str] = []
     status = "ALLOW"
@@ -242,12 +248,15 @@ def _regression_decision(
         and not report.get("removed_error_signatures")
         and not new_signatures
     )
-    if patch_static and signal_static:
+    if patch_static and signal_static and not baseline_compare:
         status = "ASK"
         reasons.append("No change detected relative to previous bundle; awaiting operator intervention.")
 
     if not reasons:
-        reasons.append("No regressions detected against previous bundle.")
+        if baseline_compare:
+            reasons.append("No regressions detected against recorded baseline.")
+        else:
+            reasons.append("No regressions detected against previous bundle.")
     return status, reasons
 
 

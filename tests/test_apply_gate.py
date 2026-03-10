@@ -5,6 +5,8 @@ import pytest
 
 from orchestrator.apply_gate import ApplyGate
 
+pytestmark = pytest.mark.fast
+
 
 @pytest.fixture()
 def git_repo(tmp_path):

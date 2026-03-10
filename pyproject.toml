@@ -22,3 +22,11 @@ dev = [
 [tool.setuptools]
 package-dir = {"" = ""}
 packages = ["orchestrator"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+markers = [
+    "fast: deterministic tests that run without Unity",
+    "unity: integration tests that require Unity prefab/preview workflows",
+]

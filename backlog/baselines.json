@@ -1,0 +1,16 @@
+{
+  "baselines": [
+    {
+      "task_id": "0007",
+      "run_id": "20260303_141017_0007",
+      "tag": "stability_core_v1_green",
+      "timestamp": "20260303_143300"
+    },
+    {
+      "task_id": "0020",
+      "run_id": "20260305_170747_0020",
+      "tag": "zombie_death_probe_v1",
+      "timestamp": "20260306_144646"
+    }
+  ]
+}

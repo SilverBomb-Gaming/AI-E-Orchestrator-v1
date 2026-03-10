@@ -6,21 +6,25 @@ import re
 import shutil
 import subprocess
 import time
+from datetime import datetime, timezone
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .approvals import OperatorApprovalStore
 from .command_controls import CommandAllowlist
 from .config import OrchestratorConfig
 from .contracts import Contract, load_contract
-from .diffing import RegressionGate, build_diff_report, find_previous_run
+from .diffing import DEFAULT_NO_CHANGE_VERDICT, RegressionGate, build_diff_report, find_previous_run
+from .entity_runner import is_entity_generation_contract, run_entity_generation
 from .error_classifier import UnityErrorClassifier
 from .gates import Gatekeeper
 from .log_parser import UnityLogParser
 from .registry import AgentProfile, AgentRegistry
 from .report import ReportEmitter
-from .utils import ensure_dir, read_json, safe_write_text, slugify, utc_timestamp, write_json
+from .repeatability import compare_entity_runs, write_repeatability_report
+from .run_report import RunReportContext, write_run_report
+from .utils import append_live_event, ensure_dir, read_json, safe_write_text, slugify, utc_timestamp, write_json
 from .workspace import WorkspaceContext, WorkspaceManager
 
 
@@ -46,7 +50,7 @@ class LoopSettings:
 class QueueManager:
     DEFAULT_AGENTS = ["builder", "qa", "auditor"]
     QUEUE_FILE_PATTERN = re.compile(r"^(\d{4})_")
-    SUPPORTED_SUFFIXES = {".md", ".markdown", ".yaml", ".yml"}
+    SUPPORTED_SUFFIXES = {".md", ".markdown", ".yaml", ".yml", ".json"}
 
     def __init__(self, queue_path: Path, queue_contracts_dir: Path, root_dir: Path) -> None:
         self.queue_path = queue_path
@@ -76,6 +80,12 @@ class QueueManager:
                 self._set_blocked_reason(None)
                 return [task]
             if status == "needs_approval":
+                if self._can_auto_retry(task):
+                    task["status"] = "pending"
+                    task["last_error"] = ""
+                    self._persist()
+                    self._set_blocked_reason(None)
+                    return [task]
                 reason = f"Task {task.get('id', 'UNKNOWN')} requires operator approval before continuing."
             else:
                 reason = f"Task {task.get('id', 'UNKNOWN')} is {status}; awaiting operator action."
@@ -228,6 +238,25 @@ class QueueManager:
         except ValueError:
             return str(path)
 
+    def _absolute_contract_path(self, contract_path: str | Path) -> Path:
+        candidate = Path(contract_path or "")
+        if candidate.is_absolute():
+            return candidate
+        return (self.root_dir / candidate).resolve()
+
+    def _can_auto_retry(self, task: Dict[str, Any]) -> bool:
+        contract_path = task.get("contract_path")
+        if not contract_path:
+            return False
+        absolute = self._absolute_contract_path(contract_path)
+        if not absolute.exists():
+            return False
+        try:
+            contract = load_contract(absolute)
+        except Exception:
+            return False
+        return is_entity_generation_contract(contract)
+
     def _extract_task_id_from_name(self, path: Path) -> str:
         match = self.QUEUE_FILE_PATTERN.match(path.name)
         if match:
@@ -238,9 +267,18 @@ class QueueManager:
         return self._safe_int(task.get("id", "0"))
 
     def _safe_int(self, value: Any) -> int:
+        if isinstance(value, int):
+            return value
         try:
             return int(value)
         except (TypeError, ValueError):
+            if isinstance(value, str):
+                digits = "".join(ch for ch in value if ch.isdigit())
+                if digits:
+                    try:
+                        return int(digits)
+                    except ValueError:
+                        pass
             return 0
 
 
@@ -250,7 +288,7 @@ class TaskRunner:
     MAX_LOOP_MINUTES = 30
     LOOP_DEFAULT_ATTEMPTS = 2
     LOOP_DEFAULT_MINUTES = 20
-    RUN_ID_PATTERN = re.compile(r"^\d{8}_\d{6}_\d{4}$")
+    RUN_ID_PATTERN = re.compile(r"^\d{8}_\d{6}_[A-Za-z0-9]+$")
     UNITY_LOG_RELATIVE_PATH = Path("scripts") / "logs" / "Editor.log"
     UNITY_SUMMARY_RELATIVE_PATH = Path("Tools") / "CI" / "unity_log_summary.json"
     UNITY_CLASSIFICATION_RELATIVE_PATH = Path("Tools") / "CI" / "unity_error_classification.json"
@@ -276,6 +314,7 @@ class TaskRunner:
         self.error_classifier = UnityErrorClassifier()
         self.approval_store = OperatorApprovalStore(self.config.approvals_path)
         self.command_allowlist = CommandAllowlist(self.config.command_allowlist_path)
+        self.baselines_path = self.config.root_dir / "backlog" / "baselines.json"
 
     def run_once(self, queue_manager: QueueManager) -> Optional[TaskResult]:
         pending = queue_manager.pending_tasks()
@@ -307,14 +346,32 @@ class TaskRunner:
                 break
         return results
 
-    def _execute_task(self, task: Dict[str, Any], queue_manager: QueueManager) -> Optional[TaskResult]:
+    def _execute_task(
+        self,
+        task: Dict[str, Any],
+        queue_manager: QueueManager,
+        *,
+        cycle_id: Optional[str] = None,
+    ) -> Optional[TaskResult]:
         contract_path = self._resolve_path(task.get("contract_path"))
         loop_settings = self._resolve_loop_settings(contract_path)
         if not loop_settings.enabled:
-            return self._execute_task_attempt(task, queue_manager)
-        return self._execute_with_loop(task, queue_manager, loop_settings, contract_path)
+            return self._execute_task_attempt(task, queue_manager, cycle_id=cycle_id)
+        return self._execute_with_loop(
+            task,
+            queue_manager,
+            loop_settings,
+            contract_path,
+            cycle_id=cycle_id,
+        )
 
-    def _execute_task_attempt(self, task: Dict[str, Any], queue_manager: QueueManager) -> Optional[TaskResult]:
+    def _execute_task_attempt(
+        self,
+        task: Dict[str, Any],
+        queue_manager: QueueManager,
+        *,
+        cycle_id: Optional[str] = None,
+    ) -> Optional[TaskResult]:
         task_id = task.get("id", "UNKNOWN")
         timestamp = utc_timestamp()
         contract_path = self._resolve_path(task.get("contract_path"))
@@ -335,6 +392,14 @@ class TaskRunner:
                 retention_info,
                 diff_report=None,
                 additional_notes=[f"Last error: {failure_reason}"],
+            )
+            self._emit_live_event(
+                cycle_id,
+                "gate_decision",
+                failure_reason,
+                task_id=str(task_id),
+                run_id=run_id,
+                gate=gate_report["overall_status"],
             )
             self._emit_gate_report(None, run_dir, gate_report)
             self._emit_command_results(None, run_dir, [])
@@ -370,6 +435,17 @@ class TaskRunner:
                     "current_run_id": None,
                     "last_error": failure_reason,
                 },
+            )
+            self._safe_emit_run_report(
+                run_dir=run_dir,
+                run_id=run_id,
+                task_id=str(task_id),
+                contract_path=str(contract_path),
+                task_type="unknown",
+                final_status="fail",
+                final_detail=failure_reason,
+                command_results=[],
+                validation_sources=[],
             )
             return TaskResult(
                 task_id=task_id,
@@ -412,8 +488,27 @@ class TaskRunner:
         no_change_detected = False
         playmode_meta: Dict[str, Any] = {}
         summary_notes: List[str] = []
+        validation_sources: List[str] = []
+        baseline_entry: Optional[Dict[str, Any]] = None
+        baseline_meta: Dict[str, Any] = self._baseline_metadata(None, False)
+        baseline_compare_active = False
+        baseline_tag: Optional[str] = None
+        task_type_label = "standard"
+        final_status_label = "internal_error"
+        final_status_detail = ""
+        entity_validation_snapshot: Dict[str, Any] = {}
+        entity_evidence_result: Optional[Dict[str, Any]] = None
+        expects_entity_artifacts = False
         try:
             contract = load_contract(contract_path)
+            task_type_label = str(
+                contract.metadata.get("type")
+                or contract.metadata.get("Type")
+                or contract.metadata.get("contract_type")
+                or contract.metadata.get("contractType")
+                or "standard"
+            ).lower()
+            expects_entity_artifacts = is_entity_generation_contract(contract)
             target_value = (
                 task.get("target_repo")
                 or contract.metadata.get("Target Repo Path")
@@ -428,15 +523,79 @@ class TaskRunner:
             plan_content = self._build_plan(contract, agents, target_repo)
             reporter.emit_plan(plan_content)
             regression_config = self._extract_regression_config(contract)
-            command_results = self._run_commands(contract.commands, workspace_ctx, contract)
+            if expects_entity_artifacts:
+                entity_result = run_entity_generation(contract, workspace_ctx, run_dir)
+                command_results = entity_result.command_results
+                summary_notes.extend(entity_result.notes)
+                entity_validation_snapshot = read_json(run_dir / "entity" / "entity_validation.json", default={})
+                repeatability_info = self._augment_entity_repeatability(
+                    task_id=str(task_id),
+                    run_id=run_id,
+                    run_dir=run_dir,
+                    entity_validation=entity_validation_snapshot,
+                )
+                if repeatability_info:
+                    verdict = "match" if repeatability_info.get("match", False) else "mismatch"
+                    prev_run = repeatability_info.get("previous_run_id") or "unknown"
+                    summary_notes.append(f"- Repeatability vs {prev_run}: {verdict}.")
+                    differences = repeatability_info.get("differences") or []
+                    if differences:
+                        mismatch_fields = ", ".join(
+                            sorted({entry.get("field", "unknown") for entry in differences})
+                        )
+                        summary_notes.append(f"- Repeatability differences: {mismatch_fields}.")
+                entity_evidence_result = self._evaluate_entity_evidence(
+                    contract,
+                    run_dir,
+                    command_results=command_results,
+                    entity_validation=entity_validation_snapshot,
+                )
+                if entity_evidence_result.get("ok"):
+                    if "entity_evidence" not in validation_sources:
+                        validation_sources.append("entity_evidence")
+                    summary_notes.append("- Entity workflow evidence accepted for validation.")
+                elif entity_evidence_result.get("reasons"):
+                    for reason in entity_evidence_result["reasons"][:3]:
+                        summary_notes.append(f"- Entity evidence incomplete: {reason}")
+                final_status_label = str(entity_validation_snapshot.get("status", "unknown"))
+                if entity_validation_snapshot.get("errors"):
+                    final_status_detail = f"Entity errors: {entity_validation_snapshot['errors'][0]}"
+                else:
+                    final_status_detail = f"Entity workflow status {final_status_label}."
+            else:
+                command_results = self._run_commands(
+                    contract.commands,
+                    workspace_ctx,
+                    contract,
+                    task_id=task_id,
+                    run_id=run_id,
+                    cycle_id=cycle_id,
+                )
             self._emit_command_results(reporter, run_dir, command_results)
             self._maybe_generate_log_summary(contract, workspace_ctx)
-            artifacts_info = self._collect_artifacts(workspace_ctx, contract)
+            artifacts_info = self._collect_artifacts(
+                workspace_ctx,
+                contract,
+                task_id=task_id,
+                run_id=run_id,
+                cycle_id=cycle_id,
+            )
             playmode_context = self._evaluate_playmode_context(contract, workspace_ctx)
             playmode_meta = self._playmode_meta(contract, playmode_context)
+            entity_evidence_ok = bool(entity_evidence_result and entity_evidence_result.get("ok"))
+            if playmode_context.get("verified"):
+                if "playmode_markers" not in validation_sources:
+                    validation_sources.append("playmode_markers")
+            if entity_evidence_ok and playmode_context.get("halt"):
+                existing_note = playmode_context.get("note")
+                bridge_note = "Play Mode markers missing; entity workflow evidence satisfied validation."
+                playmode_context["note"] = existing_note or bridge_note
+                playmode_context["halt"] = False
+                playmode_context["reason"] = ""
             if playmode_context.get("note"):
                 summary_notes.append(f"- {playmode_context['note']}")
-            if playmode_context.get("halt"):
+            should_halt = playmode_context.get("halt") and not entity_evidence_ok
+            if should_halt:
                 gate_report = self._build_playmode_gate_report(task_id, playmode_context["reason"])
                 self._emit_gate_report(reporter, run_dir, gate_report)
                 retention_info = self._apply_retention(run_id)
@@ -470,6 +629,8 @@ class TaskRunner:
                         "regression_config": regression_config,
                     },
                     "playmode": playmode_meta,
+                    "baseline": self._baseline_metadata(None, False),
+                    "validation_sources": validation_sources,
                 }
                 write_json(run_dir / "run_meta.json", run_meta)
                 run_meta_emitted = True
@@ -477,6 +638,14 @@ class TaskRunner:
                 queue_status = "needs_approval"
                 last_error = playmode_context["reason"]
                 last_run_status_value = "ASK"
+                self._emit_live_event(
+                    cycle_id,
+                    "gate_decision",
+                    playmode_context["reason"],
+                    task_id=str(task_id),
+                    run_id=run_id,
+                    gate=gate_report["overall_status"],
+                )
                 task_result = TaskResult(
                     task_id=task_id,
                     run_id=run_id,
@@ -486,6 +655,23 @@ class TaskRunner:
                     status=result_status,
                     no_change_detected=False,
                     regression_verdict=None,
+                )
+                if not entity_validation_snapshot:
+                    final_status_label = gate_report["overall_status"].lower()
+                if not final_status_detail:
+                    final_status_detail = playmode_context["reason"]
+                report_status = final_status_label or gate_report.get("overall_status", result_status).lower()
+                report_detail = final_status_detail or playmode_context["reason"]
+                self._safe_emit_run_report(
+                    run_dir=run_dir,
+                    run_id=run_id,
+                    task_id=str(task_id),
+                    contract_path=str(contract_path),
+                    task_type=task_type_label,
+                    final_status=report_status,
+                    final_detail=report_detail,
+                    command_results=command_results,
+                    validation_sources=validation_sources,
                 )
                 return task_result
             if self._agents_can_write(agents):
@@ -501,28 +687,72 @@ class TaskRunner:
             self._emit_gate_report(reporter, run_dir, gate_report)
             self._record_artifact_manifest(workspace_ctx, contract, gate_report, artifacts_info)
             diff_report_payload: Optional[Dict[str, Any]] = None
+            regression_gate: Optional[RegressionGate] = None
             previous_run_dir = find_previous_run(self.config.runs_dir, task_id, run_id)
-            if previous_run_dir:
+            baseline_entry = self._baseline_entry_for_task(task_id)
+            baseline_run_dir: Optional[Path] = None
+            if baseline_entry:
+                candidate = baseline_entry.get("run_id")
+                if candidate and candidate != run_id:
+                    candidate_dir = self.config.runs_dir / candidate
+                    if candidate_dir.exists():
+                        baseline_run_dir = candidate_dir
+            comparison_dir = baseline_run_dir or previous_run_dir
+            baseline_compare_active = baseline_run_dir is not None
+            baseline_tag = baseline_entry.get("tag") if baseline_entry else None
+            baseline_meta = self._baseline_metadata(baseline_entry, baseline_compare_active)
+            if comparison_dir:
                 current_summary_path = workspace_ctx.repo_path / self.UNITY_SUMMARY_RELATIVE_PATH
                 current_classification_path = workspace_ctx.repo_path / self.UNITY_CLASSIFICATION_RELATIVE_PATH
                 try:
                     diff_report_payload, regression_gate = build_diff_report(
                         current_run_dir=run_dir,
-                        previous_run_dir=previous_run_dir,
+                        previous_run_dir=comparison_dir,
                         gate_report=gate_report,
                         command_results=command_results,
                         current_summary_path=current_summary_path,
                         current_classification_path=current_classification_path,
                         regression_config=regression_config,
+                        baseline_compare=baseline_compare_active,
+                        baseline_tag=baseline_tag,
                     )
-                    if diff_report_payload:
-                        self._emit_diff_report(reporter, run_dir, diff_report_payload)
-                        gate_report = self._attach_regression_gate(gate_report, regression_gate)
-                        self._emit_gate_report(reporter, run_dir, gate_report)
-                        no_change_detected = bool(diff_report_payload.get("no_change_detected", False))
                 except Exception as diff_exc:
                     print(f"[orchestrator] Failed to generate diff report for task {task_id}: {diff_exc}")
-                    diff_report_payload = None
+                    diff_report_payload = self._build_stub_diff_report(
+                        current_run_dir=run_dir,
+                        comparison_dir=comparison_dir,
+                        gate_report=gate_report,
+                        regression_config=regression_config,
+                        reason=f"diff_generation_failed: {diff_exc}",
+                        baseline_compare=baseline_compare_active,
+                        baseline_tag=baseline_tag,
+                    )
+                    regression_gate = None
+            else:
+                diff_report_payload = self._build_stub_diff_report(
+                    current_run_dir=run_dir,
+                    comparison_dir=None,
+                    gate_report=gate_report,
+                    regression_config=regression_config,
+                    reason="no_previous_bundle_available",
+                    baseline_compare=False,
+                    baseline_tag=None,
+                )
+            if diff_report_payload:
+                self._emit_diff_report(reporter, run_dir, diff_report_payload)
+                if regression_gate:
+                    regression_gate = self._normalize_regression_gate(
+                        regression_gate,
+                        run_dir=run_dir,
+                        command_results=command_results,
+                        entity_validation=entity_validation_snapshot,
+                        entity_evidence=entity_evidence_result,
+                        policy_payload=gate_report.get("policy", {}),
+                    )
+                    gate_report = self._attach_regression_gate(gate_report, regression_gate)
+                    self._emit_gate_report(reporter, run_dir, gate_report)
+                no_change_detected = bool(diff_report_payload.get("no_change_detected", False))
+
             retention_info = self._apply_retention(run_id)
             summary_text = self._build_summary(
                 contract,
@@ -553,6 +783,8 @@ class TaskRunner:
                     "regression_config": regression_config,
                 },
                 "playmode": playmode_meta,
+                "baseline": baseline_meta,
+                "validation_sources": validation_sources,
             }
             write_json(run_dir / "run_meta.json", run_meta)
             run_meta_emitted = True
@@ -561,6 +793,10 @@ class TaskRunner:
             queue_status = self._queue_status_for_overall(overall)
             last_run_status_value = gate_report["overall_status"]
             gate_failure_reason = self._summarize_gate_failure(gate_report)
+            if not entity_validation_snapshot:
+                final_status_label = gate_report["overall_status"].lower()
+            if not final_status_detail:
+                final_status_detail = gate_failure_reason or f"Gate result {overall}"
             last_error = "" if queue_status == "completed" else gate_failure_reason or f"Gate result {overall}"
             task_result = TaskResult(
                 task_id=task_id,
@@ -572,9 +808,20 @@ class TaskRunner:
                 no_change_detected=no_change_detected,
                 regression_verdict=(diff_report_payload or {}).get("regression_verdict"),
             )
+            self._emit_live_event(
+                cycle_id,
+                "gate_decision",
+                f"Gate result {overall}",
+                task_id=str(task_id),
+                run_id=run_id,
+                gate=gate_report["overall_status"],
+                regression_verdict=(diff_report_payload or {}).get("regression_verdict"),
+            )
         except Exception as exc:
             failure_reason = str(exc) or exc.__class__.__name__
             print(f"[orchestrator] Task {task_id} crashed: {failure_reason}")
+            final_status_label = "internal_error"
+            final_status_detail = failure_reason
             if gate_report is None:
                 gate_report = self._build_failure_gate_report(task_id, failure_reason)
             self._emit_gate_report(reporter, run_dir, gate_report)
@@ -592,6 +839,14 @@ class TaskRunner:
                 additional_notes=summary_notes + [f"- Last error: {failure_reason}"],
             )
             self._emit_summary(reporter, run_dir, summary_text)
+            self._emit_live_event(
+                cycle_id,
+                "gate_decision",
+                failure_reason,
+                task_id=str(task_id),
+                run_id=run_id,
+                gate=gate_report["overall_status"],
+            )
             if not run_meta_emitted:
                 run_meta = {
                     "task_id": task_id,
@@ -612,6 +867,8 @@ class TaskRunner:
                         "regression_config": regression_config,
                     },
                     "playmode": playmode_meta,
+                    "baseline": baseline_meta,
+                    "validation_sources": validation_sources,
                 }
                 write_json(run_dir / "run_meta.json", run_meta)
                 run_meta_emitted = True
@@ -663,7 +920,75 @@ class TaskRunner:
                 no_change_detected=no_change_detected,
                 regression_verdict=(diff_report_payload or {}).get("regression_verdict"),
             )
+        report_status = self._report_status_value(
+            final_status_label,
+            entity_validation_snapshot,
+            gate_report,
+            result_status,
+        )
+        report_detail = (
+            final_status_detail
+            or last_error
+            or self._summarize_gate_failure(gate_report)
+            or f"Gate result {(gate_report or {}).get('overall_status', result_status or 'unknown')}"
+        )
+        self._safe_emit_run_report(
+            run_dir=run_dir,
+            run_id=run_id,
+            task_id=str(task_id),
+            contract_path=str(contract_path),
+            task_type=task_type_label,
+            final_status=report_status,
+            final_detail=report_detail,
+            command_results=command_results,
+            validation_sources=validation_sources,
+        )
+        task_result = self._enforce_finalization_truthfulness(
+            task_id=str(task_id),
+            run_id=run_id,
+            run_dir=run_dir,
+            workspace_ctx=workspace_ctx,
+            queue_manager=queue_manager,
+            expect_entity_artifacts=expects_entity_artifacts,
+            timestamp=timestamp,
+            gate_report=gate_report,
+            command_results=command_results,
+            no_change_detected=no_change_detected,
+            diff_report_payload=diff_report_payload,
+            current_result=task_result,
+        )
         return task_result
+
+    def _safe_emit_run_report(
+        self,
+        *,
+        run_dir: Path,
+        run_id: str,
+        task_id: str,
+        contract_path: str,
+        task_type: str,
+        final_status: str,
+        final_detail: str,
+        command_results: Sequence[Dict[str, Any]],
+        validation_sources: Optional[Sequence[str]] = None,
+    ) -> None:
+        if not run_dir:
+            return
+        try:
+            context = RunReportContext(
+                run_id=run_id,
+                task_id=task_id,
+                contract_path=contract_path,
+                task_type=task_type,
+                final_status=final_status,
+                final_status_detail=final_detail,
+                command_results=list(command_results or []),
+                run_dir=run_dir,
+                validation_sources=list(validation_sources or []),
+            )
+            write_run_report(context)
+        except Exception as exc:
+            print(f"[orchestrator] Warning: failed to emit report_last_run.md for {run_id}: {exc}")
 
     def _execute_with_loop(
         self,
@@ -671,6 +996,8 @@ class TaskRunner:
         queue_manager: QueueManager,
         loop_settings: LoopSettings,
         contract_path: Path,
+        *,
+        cycle_id: Optional[str] = None,
     ) -> Optional[TaskResult]:
         task_id = task.get("id", "UNKNOWN")
         attempts: List[Dict[str, Any]] = []
@@ -687,7 +1014,7 @@ class TaskRunner:
                     break
                 time.sleep(1)
             attempt_index += 1
-            result = self._execute_task_attempt(task, queue_manager)
+            result = self._execute_task_attempt(task, queue_manager, cycle_id=cycle_id)
             final_result = result
             attempt_record = {
                 "attempt": attempt_index,
@@ -752,6 +1079,72 @@ class TaskRunner:
             retry_performed=len(attempts) > 1,
         )
         return final_result
+
+    def _report_status_value(
+        self,
+        final_status_label: str,
+        entity_validation: Dict[str, Any],
+        gate_report: Optional[Dict[str, Any]],
+        result_status: str,
+    ) -> str:
+        if entity_validation and entity_validation.get("status"):
+            return str(entity_validation.get("status"))
+        if final_status_label:
+            return str(final_status_label)
+        if gate_report and gate_report.get("overall_status"):
+            return str(gate_report["overall_status"]).lower()
+        if result_status:
+            return str(result_status).lower()
+        return "unknown"
+
+    def _augment_entity_repeatability(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        run_dir: Path,
+        entity_validation: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        if not entity_validation:
+            return None
+        normalized_task = (task_id or "").upper()
+        if not normalized_task.startswith("ENTITY_"):
+            return None
+        previous_run_dir = find_previous_run(self.config.runs_dir, task_id, run_id)
+        if not previous_run_dir or previous_run_dir == run_dir:
+            return None
+        previous_validation = read_json(previous_run_dir / "entity" / "entity_validation.json", default={})
+        if not previous_validation:
+            return None
+        try:
+            report = compare_entity_runs(
+                current_run_dir=run_dir,
+                comparison_run_dir=previous_run_dir,
+                current_validation=entity_validation,
+                comparison_validation=previous_validation,
+            )
+        except ValueError as repeatability_error:
+            print(
+                f"[orchestrator] Repeatability comparison failed for {task_id}: {repeatability_error}"
+            )
+            return None
+        repeatability = {
+            "previous_run_id": report.get("previous_run_id", previous_run_dir.name),
+            "comparison_fields": report.get("fields", []),
+            "match": report.get("match", False),
+            "differences": report.get("differences", []),
+            "generated_at": report.get("generated_at", utc_timestamp(compact=False)),
+        }
+        entity_validation["repeatability"] = repeatability
+        destination = run_dir / "entity" / "entity_validation.json"
+        write_json(destination, entity_validation)
+        try:
+            write_repeatability_report(report, current_run_dir=run_dir)
+        except Exception as exc:  # pragma: no cover - persistence guard
+            print(
+                f"[orchestrator] Warning: unable to write repeatability_report.json for {task_id}: {exc}"
+            )
+        return repeatability
 
     def _write_fix_loop_report(
         self,
@@ -883,6 +1276,23 @@ class TaskRunner:
     def _default_agents(self) -> List[str]:
         return QueueManager.DEFAULT_AGENTS.copy()
 
+    def _baseline_entry_for_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        payload = read_json(self.baselines_path, default={"baselines": []})
+        entries = payload.get("baselines", [])
+        for entry in reversed(entries):
+            if entry.get("task_id") == task_id:
+                return entry
+        return None
+
+    def _baseline_metadata(self, entry: Optional[Dict[str, Any]], active: bool) -> Dict[str, Any]:
+        if not entry:
+            return {"tag": "", "run_id": "", "active": False}
+        return {
+            "tag": entry.get("tag", ""),
+            "run_id": entry.get("run_id", ""),
+            "active": active,
+        }
+
     def _agents_can_write(self, agents: Iterable[AgentProfile]) -> bool:
         return any("write_patch" in agent.allowed_actions for agent in agents)
 
@@ -948,6 +1358,10 @@ class TaskRunner:
         commands: List[Dict[str, Any]],
         workspace_ctx: WorkspaceContext,
         contract: Contract | None,
+        *,
+        task_id: str,
+        run_id: str,
+        cycle_id: Optional[str],
     ) -> List[Dict[str, Any]]:
         if not commands:
             payload = self._write_placeholder_log(workspace_ctx.logs_dir, "no-commands")
@@ -965,6 +1379,15 @@ class TaskRunner:
             stderr_path = workspace_ctx.logs_dir / f"{slug}.err.log"
             started = time.time()
             self._enforce_command_allowlist(shell, name)
+            self._emit_live_event(
+                cycle_id,
+                "command_start",
+                f"{name} started.",
+                task_id=task_id,
+                run_id=run_id,
+                command_name=name,
+                shell=shell,
+            )
             try:
                 completed = subprocess.run(
                     shell,
@@ -978,11 +1401,25 @@ class TaskRunner:
                 stdout_path.write_text(completed.stdout, encoding="utf-8")
                 stderr_path.write_text(completed.stderr, encoding="utf-8")
                 returncode = completed.returncode
+                status = "success"
             except subprocess.TimeoutExpired as exc:
                 stdout_path.write_text(exc.stdout or "", encoding="utf-8")
                 stderr_path.write_text(exc.stderr or "", encoding="utf-8")
                 returncode = -1
+                status = "timeout"
             duration = round(time.time() - started, 2)
+            self._emit_live_event(
+                cycle_id,
+                "command_end",
+                f"{name} completed with code {returncode}.",
+                task_id=task_id,
+                run_id=run_id,
+                command_name=name,
+                shell=shell,
+                returncode=returncode,
+                duration=duration,
+                status=status,
+            )
             results.append(
                 {
                     "name": name,
@@ -1068,7 +1505,15 @@ class TaskRunner:
         destination = workspace_ctx.artifacts_dir / "artifact_manifest.json"
         write_json(destination, payload)
 
-    def _collect_artifacts(self, workspace_ctx: WorkspaceContext, contract: Contract) -> List[Dict[str, Any]]:
+    def _collect_artifacts(
+        self,
+        workspace_ctx: WorkspaceContext,
+        contract: Contract,
+        *,
+        task_id: str,
+        run_id: str,
+        cycle_id: Optional[str],
+    ) -> List[Dict[str, Any]]:
         artifacts = contract.artifact_requirements
         if not artifacts:
             return []
@@ -1089,6 +1534,16 @@ class TaskRunner:
                 status = "missing"
                 size_bytes = 0
                 contains_error = False
+            self._emit_live_event(
+                cycle_id,
+                "artifact_copied",
+                f"{status} {relative_path}",
+                task_id=task_id,
+                run_id=run_id,
+                artifact=str(relative_path).replace('\\', '/'),
+                artifact_status=status,
+                size_bytes=size_bytes,
+            )
             statuses.append(
                 {
                     "artifact": str(relative_path).replace('\\', '/'),
@@ -1098,6 +1553,251 @@ class TaskRunner:
                 }
             )
         return statuses
+
+    def _finalization_health(self, run_dir: Path, *, expect_entity_artifacts: bool) -> tuple[bool, List[str]]:
+        requirements = {
+            "command_results": run_dir / "command_results.json",
+            "gate_report": run_dir / "gate_report.json",
+            "summary": run_dir / "summary.md",
+            "run_report": run_dir / "report_last_run.md",
+            "run_meta": run_dir / "run_meta.json",
+        }
+        if expect_entity_artifacts:
+            requirements["entity_validation"] = run_dir / "entity" / "entity_validation.json"
+        issues: List[str] = []
+        for label, path in requirements.items():
+            if not path.exists():
+                try:
+                    relative = path.relative_to(run_dir)
+                except ValueError:
+                    relative = path
+                issues.append(f"{label} missing ({relative})")
+            else:
+                try:
+                    if path.is_file() and path.stat().st_size <= 0:
+                        relative = path.relative_to(run_dir)
+                        issues.append(f"{label} empty ({relative})")
+                except OSError:
+                    relative = path
+                    issues.append(f"{label} unreadable ({relative})")
+        return (len(issues) == 0, issues)
+
+    def _build_stuck_diagnostic_payload(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        run_dir: Path,
+        workspace_ctx: Optional[WorkspaceContext],
+        reason: str,
+        expect_entity_artifacts: bool,
+    ) -> Dict[str, Any]:
+        snapshot = self._latest_log_snapshot(workspace_ctx)
+        workspace_path = str(workspace_ctx.base_path) if workspace_ctx else ""
+        command_results_present = (run_dir / "command_results.json").exists()
+        entity_validation_present = (run_dir / "entity" / "entity_validation.json").exists()
+        report_present = (run_dir / "report_last_run.md").exists()
+        gate_report_present = (run_dir / "gate_report.json").exists()
+        return {
+            "run_id": run_id,
+            "task_id": str(task_id),
+            "workspace_path": workspace_path,
+            "run_bundle_path": str(run_dir),
+            "latest_stage": self._infer_latest_stage(run_dir, workspace_ctx, expect_entity_artifacts),
+            "unity_process_detected": False,
+            "latest_log_write_time": snapshot.get("iso"),
+            "seconds_since_last_log_write": snapshot.get("delta_seconds"),
+            "command_results_present": command_results_present,
+            "entity_validation_present": entity_validation_present,
+            "report_present": report_present,
+            "gate_report_present": gate_report_present,
+            "suspected_reason": reason,
+            "status": "stalled",
+        }
+
+    def _infer_latest_stage(
+        self,
+        run_dir: Path,
+        workspace_ctx: Optional[WorkspaceContext],
+        expect_entity_artifacts: bool,
+    ) -> str:
+        if not expect_entity_artifacts:
+            return "general"
+        entity_dir = run_dir / "entity"
+        if (entity_dir / "entity_validation.json").exists():
+            return "finalization"
+        if (entity_dir / "entity_preview.json").exists() or (entity_dir / "entity_preview.png").exists():
+            return "preview"
+        if (entity_dir / "entity_prefab.json").exists():
+            return "prefab"
+        repo_root = workspace_ctx.repo_path if workspace_ctx else None
+        if repo_root:
+            repo_preview = repo_root / "scripts" / "logs" / "zombie_prefab_preview.json"
+            repo_prefab = repo_root / "scripts" / "logs" / "zombie_prefab_creation.json"
+            if repo_preview.exists():
+                return "preview"
+            if repo_prefab.exists():
+                return "prefab"
+        return "initialization"
+
+    def _latest_log_snapshot(self, workspace_ctx: Optional[WorkspaceContext]) -> Dict[str, Any]:
+        if not workspace_ctx:
+            return {"iso": "", "delta_seconds": None}
+        candidates: List[float] = []
+        log_roots = [workspace_ctx.logs_dir]
+        repo_logs = workspace_ctx.repo_path / "scripts" / "logs"
+        log_roots.append(repo_logs)
+        for root in log_roots:
+            if not root.exists():
+                continue
+            for path in root.rglob("*.log"):
+                try:
+                    candidates.append(path.stat().st_mtime)
+                except OSError:
+                    continue
+        if not candidates:
+            return {"iso": "", "delta_seconds": None}
+        latest_ts = max(candidates)
+        iso_value = datetime.fromtimestamp(latest_ts, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+        delta = max(0.0, time.time() - latest_ts)
+        return {"iso": iso_value, "delta_seconds": round(delta, 1)}
+
+    def _write_stuck_diagnostic(self, run_dir: Path, payload: Dict[str, Any]) -> None:
+        try:
+            write_json(run_dir / "stuck_diagnostic.json", payload)
+        except Exception as exc:  # pragma: no cover - diagnostics are best effort
+            print(f"[orchestrator] Warning: unable to write stuck_diagnostic.json for {run_dir.name}: {exc}")
+
+    def _enforce_finalization_truthfulness(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        run_dir: Path,
+        workspace_ctx: Optional[WorkspaceContext],
+        queue_manager: QueueManager,
+        expect_entity_artifacts: bool,
+        timestamp: str,
+        gate_report: Optional[Dict[str, Any]],
+        command_results: List[Dict[str, Any]],
+        no_change_detected: bool,
+        diff_report_payload: Optional[Dict[str, Any]],
+        current_result: TaskResult,
+    ) -> TaskResult:
+        healthy, issues = self._finalization_health(run_dir, expect_entity_artifacts=expect_entity_artifacts)
+        if healthy:
+            return current_result
+        reason = "; ".join(issues) if issues else "finalization_incomplete"
+        print(f"[orchestrator] Finalization incomplete for run {run_id}: {reason}")
+        diag_payload = self._build_stuck_diagnostic_payload(
+            task_id=str(task_id),
+            run_id=run_id,
+            run_dir=run_dir,
+            workspace_ctx=workspace_ctx,
+            reason=reason,
+            expect_entity_artifacts=expect_entity_artifacts,
+        )
+        self._write_stuck_diagnostic(run_dir, diag_payload)
+        failure_gate = self._build_failure_gate_report(str(task_id), f"Finalization incomplete: {reason}")
+        write_json(run_dir / "gate_report.json", failure_gate)
+        summary_path = run_dir / "summary.md"
+        if summary_path.exists():
+            try:
+                existing_summary = summary_path.read_text(encoding="utf-8")
+            except OSError:
+                existing_summary = ""
+            if existing_summary and "Finalization override:" not in existing_summary:
+                safe_write_text(summary_path, existing_summary.rstrip() + f"\n- Finalization override: {reason}\n")
+        queue_manager.update_task(
+            task_id,
+            {
+                "status": "failed",
+                "last_run": timestamp,
+                "last_run_status": "ERROR",
+                "last_run_dir": str(run_dir),
+                "last_run_id": run_id,
+                "current_run_id": None,
+                "last_error": reason,
+            },
+        )
+        return TaskResult(
+            task_id=task_id,
+            run_id=run_id,
+            run_dir=run_dir,
+            gate_report=failure_gate,
+            command_results=command_results,
+            status="FAILED",
+            no_change_detected=no_change_detected,
+            regression_verdict=(diff_report_payload or {}).get("regression_verdict"),
+        )
+
+    def _evaluate_entity_evidence(
+        self,
+        contract: Contract,
+        run_dir: Path,
+        *,
+        command_results: List[Dict[str, Any]],
+        entity_validation: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        decision = {
+            "ok": False,
+            "status": str(entity_validation.get("status", "unknown")).lower(),
+            "reasons": [],
+            "preview_required": False,
+        }
+        if not command_results:
+            decision["reasons"].append("No entity workflow commands were recorded.")
+        else:
+            failed = [c for c in command_results if c.get("returncode", 0) != 0]
+            for entry in failed:
+                name = entry.get("name", "command")
+                decision["reasons"].append(f"Command {name} exited with {entry.get('returncode')}." )
+        entity_dir = run_dir / "entity"
+        validation_path = entity_dir / "entity_validation.json"
+        if not validation_path.exists():
+            decision["reasons"].append("entity/entity_validation.json missing.")
+        elif not entity_validation:
+            decision["reasons"].append("entity_validation.json empty or unreadable.")
+        acceptable_statuses = {"pass", "partial"}
+        if decision["status"] not in acceptable_statuses:
+            decision["reasons"].append(
+                f"Entity validation reported status '{decision['status']}'."
+            )
+        prefab_path = entity_dir / "entity_prefab.json"
+        if not prefab_path.exists():
+            decision["reasons"].append("entity/entity_prefab.json missing.")
+        preview_json_path = entity_dir / "entity_preview.json"
+        if not preview_json_path.exists():
+            decision["reasons"].append("entity/entity_preview.json missing.")
+        preview_required = self._entity_preview_required(contract, entity_validation)
+        decision["preview_required"] = preview_required
+        preview_png_path = entity_dir / "entity_preview.png"
+        preview_generated = bool(entity_validation.get("preview_generated"))
+        if preview_required and not preview_png_path.exists():
+            decision["reasons"].append("entity/entity_preview.png missing but required.")
+        editor_log_required = contract.requires_unity_log
+        editor_log_path = entity_dir / "Editor.log"
+        if editor_log_required and not editor_log_path.exists():
+            decision["reasons"].append("entity/Editor.log missing but contract requires it.")
+        log_counts = entity_validation.get("log_counts") or {}
+        if log_counts.get("fatal", 0) > 0:
+            decision["reasons"].append("Fatal log entries detected in Editor.log classification.")
+        if not decision["reasons"]:
+            decision["ok"] = True
+        return decision
+
+    def _entity_preview_required(self, contract: Contract, entity_validation: Dict[str, Any]) -> bool:
+        workflow = contract.metadata.get("workflow") or {}
+        preview_cfg = workflow.get("preview") or {}
+        required_hint = self._coerce_bool(preview_cfg.get("required"))
+        optional_hint = self._coerce_bool(preview_cfg.get("optional"))
+        if required_hint is not None:
+            return required_hint
+        if optional_hint:
+            return False
+        if preview_cfg:
+            return True
+        return bool(entity_validation.get("preview_generated"))
 
     def _evaluate_playmode_context(self, contract: Contract, workspace_ctx: WorkspaceContext) -> Dict[str, Any]:
         mode = contract.execution_mode if contract else "editor"
@@ -1161,6 +1861,28 @@ class TaskRunner:
         if reason:
             meta["reason"] = reason
         return meta
+
+    def _emit_live_event(
+        self,
+        cycle_id: Optional[str],
+        stage: str,
+        message: str,
+        *,
+        task_id: str = "",
+        run_id: str = "",
+        **extra: Any,
+    ) -> None:
+        if not cycle_id:
+            return
+        payload: Dict[str, Any] = {"cycle_id": cycle_id, "stage": stage, "message": message}
+        if task_id:
+            payload["task_id"] = task_id
+        if run_id:
+            payload["run_id"] = run_id
+        for key, value in extra.items():
+            if value is not None:
+                payload[key] = value
+        append_live_event(payload, root=self.config.root_dir)
 
     def _apply_retention(self, current_run_id: str) -> Dict[str, Any]:
         runs_dir = self.config.runs_dir
@@ -1254,8 +1976,17 @@ class TaskRunner:
             retention_lines.append("- Deleted: none")
         diff_lines: List[str]
         if diff_report:
+            comparison_mode = diff_report.get("comparison_mode", "previous")
+            comparison_id = diff_report.get("previous_bundle_id", "unknown")
+            if comparison_mode == "baseline":
+                baseline_tag = diff_report.get("baseline_tag") or "unlabeled"
+                first_line = f"- Baseline comparison: {baseline_tag} ({comparison_id})"
+            elif comparison_mode == "none":
+                first_line = "- No previous bundle available for comparison."
+            else:
+                first_line = f"- Previous bundle: {comparison_id}"
             diff_lines = [
-                f"- Previous bundle: {diff_report.get('previous_bundle_id', 'unknown')}",
+                first_line,
                 f"- Regression verdict: {diff_report.get('regression_verdict', 'UNKNOWN')}",
                 f"- Error delta: {diff_report.get('error_count_delta', 0)}",
                 f"- Policy risk delta: {diff_report.get('policy_risk_delta', 0)}",
@@ -1267,7 +1998,10 @@ class TaskRunner:
                 diff_lines.append("- New error signatures: " + ", ".join(new_signatures[:5]))
             diff_lines.extend(f"- {reason}" for reason in diff_report.get("regression_reasons", [])[:3])
             if diff_report.get("no_change_detected"):
-                diff_lines.append("- No change detected relative to previous bundle.")
+                if comparison_mode == "baseline":
+                    diff_lines.append("- No change detected relative to recorded baseline.")
+                else:
+                    diff_lines.append("- No change detected relative to previous bundle.")
             config = (diff_report.get("regression_config") or {}) if isinstance(diff_report, dict) else {}
             preference = config.get("no_change_verdict")
             if preference:
@@ -1342,6 +2076,51 @@ class TaskRunner:
             reporter.emit_diff_report(payload)
         else:
             write_json(run_dir / "diff_report.json", payload)
+
+    def _build_stub_diff_report(
+        self,
+        *,
+        current_run_dir: Path,
+        comparison_dir: Optional[Path],
+        gate_report: Dict[str, Any],
+        regression_config: Optional[Dict[str, Any]],
+        reason: str,
+        baseline_compare: bool = False,
+        baseline_tag: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        patch_stats = gate_report.get("patch_stats") or {}
+        touched_files = list(patch_stats.get("touched_files") or [])
+        patch_snapshot = {
+            "files_changed": int(patch_stats.get("files_changed", 0) or 0),
+            "insertions": int(patch_stats.get("insertions", 0) or 0),
+            "deletions": int(patch_stats.get("deletions", 0) or 0),
+            "loc_delta": int(patch_stats.get("loc_delta", 0) or 0),
+            "touched_files": touched_files,
+        }
+        comparison_mode = "baseline" if baseline_compare else ("previous" if comparison_dir else "none")
+        return {
+            "current_bundle_id": current_run_dir.name,
+            "previous_bundle_id": comparison_dir.name if comparison_dir else "",
+            "comparison_mode": comparison_mode,
+            "baseline_tag": baseline_tag or "",
+            "regression_verdict": "UNKNOWN",
+            "regression_reasons": [reason],
+            "no_change_detected": False,
+            "error_count_delta": 0,
+            "warning_count_delta": 0,
+            "policy_risk_delta": 0,
+            "patch_loc_delta": 0,
+            "files_touched_delta": 0,
+            "runtime_delta_seconds": 0.0,
+            "actionable_error_delta": 0,
+            "classification_applied": False,
+            "new_error_signatures": [],
+            "removed_error_signatures": [],
+            "new_actionable_signatures": [],
+            "regression_config": regression_config or {"no_change_verdict": DEFAULT_NO_CHANGE_VERDICT},
+            "patch_snapshot": patch_snapshot,
+            "files_changed": touched_files,
+        }
 
     def _build_playmode_gate_report(self, task_id: str, reason: str) -> Dict[str, Any]:
         message = f"Play Mode verification failed for task {task_id}: {reason}"
@@ -1425,6 +2204,69 @@ class TaskRunner:
         gate_name = gate.get("name", "gate")
         gate_status = gate.get("status", "BLOCK")
         return f"{gate_status} in {gate_name} gate: {reason_text}"
+
+    def _normalize_regression_gate(
+        self,
+        regression_gate: RegressionGate,
+        *,
+        run_dir: Path,
+        command_results: Sequence[Dict[str, Any]],
+        entity_validation: Optional[Dict[str, Any]],
+        entity_evidence: Optional[Dict[str, Any]],
+        policy_payload: Optional[Dict[str, Any]],
+    ) -> RegressionGate:
+        entity_validation = entity_validation or {}
+        log_counts = entity_validation.get("log_counts") or {}
+        fatal_count = int(log_counts.get("fatal", 0) or 0)
+        entity_status = str(entity_validation.get("status", "") or "").lower()
+        entity_failed = entity_status == "fail"
+        command_failure = any(int(result.get("returncode", 0) or 0) != 0 for result in command_results or [])
+        policy_payload = policy_payload or {}
+        policy_allowed = bool(policy_payload.get("allowed", True))
+        policy_verdict = str(policy_payload.get("verdict", "ALLOW") or "ALLOW").upper()
+        policy_issue = (not policy_allowed) or policy_verdict == "BLOCK"
+        missing_artifacts = self._entity_artifacts_missing(run_dir, entity_evidence)
+        should_escalate = any([fatal_count > 0, missing_artifacts, command_failure, entity_failed, policy_issue])
+        if should_escalate:
+            reasons = list(regression_gate.reasons or [])
+            if fatal_count > 0:
+                reasons.append("Fatal Unity log entries detected.")
+            if missing_artifacts:
+                reasons.append("Required entity artifacts missing.")
+            if command_failure:
+                reasons.append("Entity workflow commands exited non-zero.")
+            if entity_failed:
+                reasons.append("Entity validation reported fail status.")
+            if policy_issue:
+                reasons.append("Policy gate reported a blocking verdict.")
+            return RegressionGate(verdict="ASK", reasons=self._dedup_reasons(reasons))
+        if regression_gate.verdict == "ALLOW":
+            return regression_gate
+        reasons = list(regression_gate.reasons or [])
+        reasons.append("Regression signals limited to non-fatal environment noise.")
+        return RegressionGate(verdict="ALLOW", reasons=self._dedup_reasons(reasons))
+
+    def _entity_artifacts_missing(self, run_dir: Path, entity_evidence: Optional[Dict[str, Any]]) -> bool:
+        entity_dir = run_dir / "entity"
+        has_entity_bundle = entity_dir.exists() or bool(entity_evidence)
+        if not has_entity_bundle:
+            return False
+        prefab_ok = (entity_dir / "entity_prefab.json").exists()
+        preview_json_ok = (entity_dir / "entity_preview.json").exists()
+        preview_required = bool(entity_evidence and entity_evidence.get("preview_required"))
+        preview_png_ok = (entity_dir / "entity_preview.png").exists()
+        return not (prefab_ok and preview_json_ok and (not preview_required or preview_png_ok))
+
+    def _dedup_reasons(self, reasons: Sequence[str]) -> List[str]:
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for reason in reasons or []:
+            text = str(reason).strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            deduped.append(text)
+        return deduped
 
     def _attach_regression_gate(self, gate_report: Dict[str, Any], regression_gate: RegressionGate | None) -> Dict[str, Any]:
         if not gate_report or not regression_gate:

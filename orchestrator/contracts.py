@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -199,6 +200,10 @@ def _normalize_execution_mode_value(value: Any) -> str:
 
 def load_contract(path: Path) -> Contract:
     text = path.read_text(encoding="utf-8")
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        metadata = _extract_json_metadata(text, path)
+        return Contract(path=path, metadata=metadata, body="")
     metadata, body = _extract_front_matter(text)
     return Contract(path=path, metadata=metadata, body=body)
 
@@ -211,6 +216,42 @@ def _extract_front_matter(text: str) -> Tuple[Dict[str, Any], str]:
     yaml_block, _, body = remainder.partition("---\n")
     metadata = yaml.safe_load(yaml_block) or {}
     return metadata, body.strip()
+
+
+def _extract_json_metadata(text: str, path: Path) -> Dict[str, Any]:
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON contract at {path} must deserialize to an object")
+    metadata: Dict[str, Any] = dict(payload)
+    task_id = (
+        payload.get("task_id")
+        or payload.get("Task ID")
+        or path.stem
+    )
+    metadata.setdefault("Task ID", task_id)
+    if "Objective" not in metadata:
+        entity_name = payload.get("entity_name")
+        if entity_name:
+            metadata["Objective"] = f"Entity generation for {entity_name}"
+    target_repo = payload.get("target_repo") or payload.get("Target Repo Path")
+    if target_repo and "Target Repo Path" not in metadata:
+        metadata["Target Repo Path"] = target_repo
+    allowed_scope = payload.get("allowed_scope")
+    if allowed_scope and "Allowed Scope" not in metadata:
+        metadata["Allowed Scope"] = allowed_scope
+    artifacts = payload.get("artifacts")
+    if artifacts and "Artifacts Required" not in metadata:
+        metadata["Artifacts Required"] = artifacts
+    exec_mode = payload.get("execution_mode")
+    if exec_mode and "Execution Mode" not in metadata:
+        metadata["Execution Mode"] = exec_mode
+    requires_log = payload.get("requires_unity_log")
+    if requires_log is not None and "Requires Unity Log" not in metadata:
+        metadata["Requires Unity Log"] = requires_log
+    metadata.setdefault("type", payload.get("type", "entity_generation"))
+    metadata.setdefault("entity_contract", payload)
+    metadata.setdefault("__raw_contract__", payload)
+    return metadata
 
 
 def write_contract_copy(source: Path, destination: Path) -> None:

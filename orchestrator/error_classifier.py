@@ -11,8 +11,14 @@ class UnityErrorClassifier:
 
     DEFAULT_NOISE_PATTERNS: tuple[str, ...] = (
         "curl error 42",
+        "curl error 6: could not resolve host",
         "error: access token is unavailable",
         "logassemblyerrors",
+        "fallback shader 'hidden/",
+        "start importing packages/com.unity.2d.animation/editor/assets/componenticons/d_erroricon_small",
+        "start importing packages/com.unity.2d.animation/editor/assets/componenticons/d_erroricon_small@2x",
+        "start importing packages/com.unity.2d.animation/editor/assets/editoricons/d_warning",
+        "start importing assets/3d assets/characters/zombies/meshy_ai_biped",
     )
     ACTIONABLE_KEYWORDS: tuple[str, ...] = (
         "exception",

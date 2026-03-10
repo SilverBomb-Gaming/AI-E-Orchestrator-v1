@@ -3,11 +3,15 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
+import pytest
+
 from orchestrator.night_cycle import CycleOptions, NightCycle
 from orchestrator.runner import TaskResult, TaskRunner
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+pytestmark = pytest.mark.fast
 
 
 class FakeClock:

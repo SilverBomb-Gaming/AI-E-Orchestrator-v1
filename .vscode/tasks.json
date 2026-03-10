@@ -1,0 +1,32 @@
+{
+    "version":  "2.0.0",
+    "tasks":  [
+                  {
+                      "label":  "run_night_cycle_0024",
+                      "type":  "shell",
+                      "command":  "${workspaceFolder}\\.venv-2\\Scripts\\python.exe",
+                      "args":  [
+                                   "-u",
+                                   "-m",
+                                   "orchestrator.night_cycle",
+                                   "--max-runs",
+                                   "1",
+                                   "--max-minutes",
+                                   "15",
+                                   "--task-filter",
+                                   "0024"
+                               ],
+                      "isBackground":  false
+                  },
+                  {
+                      "label":  "print_allowlist_entry",
+                      "type":  "shell",
+                      "command":  "${workspaceFolder}\\.venv-2\\Scripts\\python.exe",
+                      "args":  [
+                                   "-c",
+                                   "from orchestrator.command_controls import CommandAllowlist; from pathlib import Path; allow=CommandAllowlist(Path(\u0027backlog/command_allowlist.json\u0027)); [print(entry) for entry in sorted(allow._payload.exact) if \u0027zombie_prefab_creation\u0027 in entry]"
+                               ],
+                      "isBackground":  false
+                  }
+              ]
+}

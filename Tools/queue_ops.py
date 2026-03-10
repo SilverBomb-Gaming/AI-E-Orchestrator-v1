@@ -15,10 +15,11 @@ ROOT = Path(__file__).resolve().parent.parent
 QUEUE_PATH = ROOT / "backlog" / "queue.json"
 APPROVALS_PATH = ROOT / "backlog" / "approvals.json"
 RUNS_DIR = ROOT / "runs"
+BASELINES_PATH = ROOT / "backlog" / "baselines.json"
 
 
 def _timestamp() -> str:
-    return _dt.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
 def _load_json(path: Path, default: Any) -> Any:
@@ -55,6 +56,14 @@ def _load_approvals() -> Dict[str, Any]:
 
 def _write_approvals(data: Dict[str, Any], *, dry_run: bool = False) -> None:
     _write_json(APPROVALS_PATH, data, dry_run=dry_run)
+
+
+def _load_baselines() -> Dict[str, Any]:
+    return _load_json(BASELINES_PATH, {"baselines": []})
+
+
+def _write_baselines(data: Dict[str, Any], *, dry_run: bool = False) -> None:
+    _write_json(BASELINES_PATH, data, dry_run=dry_run)
 
 
 def _find_task(queue: Dict[str, Any], task_id: str) -> Optional[Dict[str, Any]]:
@@ -138,6 +147,17 @@ def _ensure_task(task: Optional[Dict[str, Any]], task_id: str) -> Dict[str, Any]
     if task is None:
         raise SystemExit(f"Task {task_id} not found in queue.json")
     return task
+
+
+def _load_run_meta(run_id: str) -> Dict[str, Any]:
+    run_dir = RUNS_DIR / run_id
+    if not run_dir.exists():
+        raise SystemExit(f"Run directory {run_dir} not found.")
+    payload_path = run_dir / "run_meta.json"
+    if not payload_path.exists():
+        raise SystemExit(f"run_meta.json missing for run {run_id} (expected at {payload_path}).")
+    with payload_path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def cmd_reset(args: argparse.Namespace) -> int:
@@ -281,6 +301,66 @@ def cmd_delete(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_baseline_show(_: argparse.Namespace) -> int:
+    baselines = _load_baselines().get("baselines", [])
+    if not baselines:
+        print("No baselines recorded.")
+        return 0
+
+    headers = ("Task", "Run ID", "Tag", "Timestamp")
+    rows = [
+        (
+            entry.get("task_id", ""),
+            entry.get("run_id", ""),
+            entry.get("tag", ""),
+            entry.get("timestamp", ""),
+        )
+        for entry in baselines
+    ]
+    widths = [len(header) for header in headers]
+    for row in rows:
+        widths = [max(width, len(value)) for width, value in zip(widths, row)]
+
+    line = " | ".join(header.ljust(width) for header, width in zip(headers, widths))
+    print(line)
+    print("-+-".join("-" * width for width in widths))
+    for row in rows:
+        print(" | ".join(value.ljust(width) for value, width in zip(row, widths)))
+    return 0
+
+
+def cmd_baseline_set(args: argparse.Namespace) -> int:
+    run_id = (args.run_id or "").strip()
+    if not run_id:
+        raise SystemExit("--run-id is required.")
+    run_meta = _load_run_meta(run_id)
+    task_id = (run_meta.get("task_id") or "").strip()
+    if not task_id:
+        parts = run_id.rsplit("_", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            task_id = parts[1]
+    if not task_id:
+        raise SystemExit(f"Unable to resolve task id for run {run_id}.")
+    tag = (args.tag or run_meta.get("baseline", {}).get("tag") or run_id).strip()
+
+    payload = _load_baselines()
+    existing = payload.get("baselines", [])
+    filtered = [entry for entry in existing if entry.get("task_id") != task_id]
+    entry = {
+        "task_id": task_id,
+        "run_id": run_id,
+        "tag": tag,
+        "timestamp": _timestamp(),
+    }
+    filtered.append(entry)
+    _write_baselines({"baselines": filtered}, dry_run=args.dry_run)
+    verb = "Would set" if args.dry_run else "Set"
+    print(f"{verb} baseline for task {task_id} -> run {run_id} (tag: {tag}).")
+    if args.dry_run:
+        print("[dry-run] No baseline records were modified.")
+    return 0
+
+
 def _apply_unblock_action(kind: str, task_id: str, args: argparse.Namespace) -> int:
     if kind == "resume":
         resume_args = argparse.Namespace(task=task_id, force=True, dry_run=args.dry_run)
@@ -391,6 +471,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_unblock.add_argument("--dry-run", action="store_true", help="Simulate apply mode without changes.")
     p_unblock.set_defaults(func=cmd_unblock)
+
+    p_baseline = sub.add_parser("baseline", help="Inspect or set regression baselines.")
+    baseline_sub = p_baseline.add_subparsers(dest="baseline_command", required=True)
+    p_baseline_show = baseline_sub.add_parser("show", help="List baseline records.")
+    p_baseline_show.set_defaults(func=cmd_baseline_show)
+
+    p_baseline_set = baseline_sub.add_parser("set", help="Assign a baseline run for a task.")
+    p_baseline_set.add_argument("--run-id", required=True, help="Run identifier to promote (e.g., 20260303_141017_0007).")
+    p_baseline_set.add_argument("--tag", default=None, help="Optional label describing the baseline.")
+    p_baseline_set.add_argument("--dry-run", action="store_true", help="Simulate without modifying baselines.json.")
+    p_baseline_set.set_defaults(func=cmd_baseline_set)
 
     return parser
 

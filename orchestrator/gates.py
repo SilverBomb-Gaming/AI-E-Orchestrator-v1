@@ -187,14 +187,15 @@ class Gatekeeper:
         return budget
 
     def _scope_controls(self, contract: Contract, profiles: List[AgentProfile]) -> tuple[List[str], List[str]]:
-        agent_allowlist = sorted({scope.strip("/") for profile in profiles for scope in profile.scope_allowlist if scope})
+        writers = [profile for profile in profiles if "write_patch" in profile.allowed_actions]
+        scope_profiles = writers or profiles
         contract_scope = [scope.strip("/") for scope in contract.allowed_scope if scope]
-        effective_scope = (
-            sorted({scope for scope in agent_allowlist if scope in contract_scope})
-            or contract_scope
-            or agent_allowlist
-        )
-        blocklist = sorted({scope.strip("/") for profile in profiles for scope in profile.scope_blocklist if scope})
+        agent_allowlist = sorted({scope.strip("/") for profile in scope_profiles for scope in profile.scope_allowlist if scope})
+        blocklist = sorted({scope.strip("/") for profile in scope_profiles for scope in profile.scope_blocklist if scope})
+        if contract_scope:
+            effective_scope = contract_scope
+        else:
+            effective_scope = agent_allowlist
         return effective_scope, blocklist
 
     def _aggregate_status(self, gates: List[GateResult]) -> GateStatus:

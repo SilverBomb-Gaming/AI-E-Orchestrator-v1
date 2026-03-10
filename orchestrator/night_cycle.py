@@ -17,7 +17,7 @@ from .config import OrchestratorConfig
 from .gates import Gatekeeper
 from .registry import AgentRegistry
 from .runner import QueueManager, TaskResult, TaskRunner
-from .utils import ensure_dir, safe_write_text, utc_timestamp
+from .utils import append_live_event, ensure_dir, safe_write_text, utc_timestamp
 from .validation_pack import prepare_pack_context
 from .workspace import WorkspaceManager
 
@@ -102,6 +102,12 @@ class NightCycle:
 
     def run(self) -> int:
         start = self.now_fn()
+        self._emit_live_event(
+            "cycle_start",
+            "Night cycle started.",
+            planned_runs=self.options.max_runs,
+            task_filter=self.options.task_filter or "",
+        )
         if not self.header_printed:
             print(
                 "[NIGHT] cycle_id={cycle} max_runs={runs} max_minutes={minutes} "
@@ -199,6 +205,14 @@ class NightCycle:
             )
         finally:
             self._write_summary(stop_reason, executed_attempts, planned_attempts)
+            self._emit_live_event(
+                "cycle_end",
+                f"Night cycle finished: {stop_reason}",
+                stop_reason=stop_reason,
+                attempts=executed_attempts,
+                planned_attempts=planned_attempts,
+                exit_code=exit_code,
+            )
         return exit_code
 
     def _exceeded_minutes(self, start: float) -> bool:
@@ -333,26 +347,44 @@ class NightCycle:
         outcome = "FAILED"
         notes = ""
         exit_code = 1
+        self._emit_live_event(
+            "task_start",
+            f"Task {task_id} attempt {attempt} started.",
+            task_id=task_id,
+            attempt=attempt,
+        )
         try:
             result = self.executor(task)
         except Exception as exc:  # pragma: no cover - executor safety
             notes = f"Executor crashed: {exc}"
-            return self._log_event(
+            duration = self.now_fn() - started
+            record = self._log_event(
                 task_id=task_id,
                 outcome="EXCEPTION",
                 notes=notes,
                 ran=True,
                 run_id=run_id,
                 gate=gate,
-                duration=self.now_fn() - started,
+                duration=duration,
                 timestamp=timestamp,
                 exit_code=exit_code,
                 attempt=attempt,
-            ), None
+            )
+            self._emit_live_event(
+                "task_end",
+                notes,
+                task_id=task_id,
+                run_id=run_id,
+                attempt=attempt,
+                status="EXCEPTION",
+                gate=gate,
+                duration=round(duration, 2),
+            )
+            return record, None
         duration = self.now_fn() - started
         if result is None:
             notes = "Runner returned no result."
-            return self._log_event(
+            record = self._log_event(
                 task_id=task_id,
                 outcome=outcome,
                 notes=notes,
@@ -363,7 +395,18 @@ class NightCycle:
                 timestamp=timestamp,
                 exit_code=exit_code,
                 attempt=attempt,
-            ), None
+            )
+            self._emit_live_event(
+                "task_end",
+                notes,
+                task_id=task_id,
+                run_id=run_id,
+                attempt=attempt,
+                status=outcome,
+                gate=gate,
+                duration=round(duration, 2),
+            )
+            return record, None
         run_id = result.run_id or ""
         gate = (result.gate_report or {}).get("overall_status", result.status or "UNKNOWN")
         status = (result.status or "").upper()
@@ -384,7 +427,7 @@ class NightCycle:
             else:
                 outcome = "FAILED"
                 notes = f"Gate returned {status or 'UNKNOWN'}."
-        return self._log_event(
+        record = self._log_event(
             task_id=task_id,
             outcome=outcome,
             notes=notes,
@@ -395,7 +438,18 @@ class NightCycle:
             timestamp=timestamp,
             exit_code=exit_code,
             attempt=attempt,
-        ), result
+        )
+        self._emit_live_event(
+            "task_end",
+            notes,
+            task_id=task_id,
+            run_id=run_id,
+            attempt=attempt,
+            status=outcome,
+            gate=gate,
+            duration=round(duration, 2),
+        )
+        return record, result
 
     def _is_timeout_result(self, result: Optional[TaskResult]) -> bool:
         if not result or not result.gate_report:
@@ -448,6 +502,21 @@ class NightCycle:
                 "diff_summary": decision.diff_summary,
             },
         )
+
+    def _emit_live_event(self, stage: str, message: str, *, task_id: str = "", run_id: str = "", **extra: object) -> None:
+        payload: Dict[str, object] = {
+            "cycle_id": self.cycle_id,
+            "stage": stage,
+            "message": message,
+        }
+        if task_id:
+            payload["task_id"] = task_id
+        if run_id:
+            payload["run_id"] = run_id
+        for key, value in extra.items():
+            if value is not None:
+                payload[key] = value
+        append_live_event(payload, root=self.config.root_dir)
 
     def _log_event(
         self,
@@ -717,15 +786,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     queue_manager = QueueManager(config.queue_path, config.queue_contracts_dir, config.root_dir)
 
+    cycle_id = utc_timestamp()
+
     def executor(task: Dict[str, object]) -> Optional[TaskResult]:
-        return task_runner._execute_task(task, queue_manager)  # type: ignore[attr-defined]
+        return task_runner._execute_task(task, queue_manager, cycle_id=cycle_id)  # type: ignore[attr-defined]
 
     task_supplier: Callable[[], Iterable[Dict[str, object]]] = queue_manager.all_tasks
     pack_id: Optional[str] = None
     pack_tasks: Optional[List[Dict[str, object]]] = None
     pack_mode = "queue"
     cleanup: Callable[[], None] = lambda: None
-    cycle_id = utc_timestamp()
 
     if args.pack:
         pack_path = Path(args.pack).resolve()

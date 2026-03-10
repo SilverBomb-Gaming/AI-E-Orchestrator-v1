@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.fast
+
 
 def test_babylon_smoke_contract_exists():
     root = Path(__file__).resolve().parents[1]
