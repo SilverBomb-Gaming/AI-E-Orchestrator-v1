@@ -290,6 +290,7 @@ class TaskRunner:
     LOOP_DEFAULT_MINUTES = 20
     RUN_ID_PATTERN = re.compile(r"^\d{8}_\d{6}_[A-Za-z0-9]+$")
     UNITY_LOG_RELATIVE_PATH = Path("scripts") / "logs" / "Editor.log"
+    PLAYMODE_ARTIFACTS_DIR = Path("scripts") / "logs"
     UNITY_SUMMARY_RELATIVE_PATH = Path("Tools") / "CI" / "unity_log_summary.json"
     UNITY_CLASSIFICATION_RELATIVE_PATH = Path("Tools") / "CI" / "unity_error_classification.json"
     PLAYMODE_TICK_PATTERN = re.compile(
@@ -1822,14 +1823,19 @@ class TaskRunner:
             else:
                 context["note"] = "Play mode log unavailable; optional verification skipped."
             return context
-        snippet = self._read_snippet(log_path, limit=500000)
-        lowered = snippet.lower()
-        entered = "[playmode] entered" in lowered
-        tick_match = self.PLAYMODE_TICK_PATTERN.search(snippet)
-        frames = int(tick_match.group(1)) if tick_match else None
+        log_evidence = self._extract_playmode_log_evidence(log_path, limit=500000)
+        entered = log_evidence["entered"]
+        frames = log_evidence["frames"]
+        artifact_evidence = self._extract_playmode_artifact_evidence(workspace_ctx.repo_path)
+        if artifact_evidence.get("verified") and (frames is None or not entered):
+            entered = bool(artifact_evidence.get("entered")) or entered
+            if frames is None:
+                frames = artifact_evidence.get("frames")
         if entered and frames is not None:
             context["verified"] = True
             context["frames"] = frames
+            if artifact_evidence.get("path"):
+                context["artifact_path"] = artifact_evidence["path"]
             if context["required"]:
                 context["note"] = f"Play mode verified ({frames} harness ticks)."
             else:
@@ -1857,10 +1863,48 @@ class TaskRunner:
             "log_path": context.get("log_path", ""),
             "note": context.get("note", ""),
         }
+        artifact_path = context.get("artifact_path")
+        if artifact_path:
+            meta["artifact_path"] = artifact_path
         reason = context.get("reason")
         if reason:
             meta["reason"] = reason
         return meta
+
+    def _extract_playmode_log_evidence(self, path: Path, limit: int = 500000) -> Dict[str, Any]:
+        snippet = self._read_head_tail_snippet(path, limit=limit)
+        lowered = snippet.lower()
+        tick_match = self.PLAYMODE_TICK_PATTERN.search(snippet)
+        frames = int(tick_match.group(1)) if tick_match else None
+        return {
+            "entered": "[playmode] entered" in lowered,
+            "scene_opened": "[playmode] scene_opened" in lowered,
+            "frames": frames,
+        }
+
+    def _extract_playmode_artifact_evidence(self, repo_path: Path) -> Dict[str, Any]:
+        logs_dir = repo_path / self.PLAYMODE_ARTIFACTS_DIR
+        if not logs_dir.exists():
+            return {"verified": False, "entered": False, "frames": None, "path": ""}
+        for candidate in sorted(logs_dir.glob("*playmode*.json")):
+            payload = read_json(candidate, default={})
+            if not isinstance(payload, dict):
+                continue
+            status = str(payload.get("status") or "").strip().lower()
+            entered = bool(payload.get("entered"))
+            frames = payload.get("ticks_observed")
+            try:
+                parsed_frames = int(frames) if frames is not None else None
+            except (TypeError, ValueError):
+                parsed_frames = None
+            if status == "ok" and entered and parsed_frames is not None and parsed_frames > 0:
+                return {
+                    "verified": True,
+                    "entered": True,
+                    "frames": parsed_frames,
+                    "path": str(candidate),
+                }
+        return {"verified": False, "entered": False, "frames": None, "path": ""}
 
     def _emit_live_event(
         self,
@@ -1924,6 +1968,28 @@ class TaskRunner:
                 return handle.read(limit)
         except OSError:
             return ""
+
+    def _read_head_tail_snippet(self, path: Path, limit: int = 20000) -> str:
+        if limit <= 0:
+            return ""
+        try:
+            file_size = path.stat().st_size
+        except OSError:
+            return ""
+        if file_size <= limit:
+            return self._read_snippet(path, limit=limit)
+        half_limit = max(limit // 2, 1)
+        try:
+            with path.open("r", encoding="utf-8", errors="ignore") as handle:
+                head = handle.read(half_limit)
+            with path.open("rb") as handle:
+                seek_offset = max(file_size - max(half_limit * 4, 4096), 0)
+                handle.seek(seek_offset, os.SEEK_SET)
+                tail_bytes = handle.read()
+            tail = tail_bytes.decode("utf-8", errors="ignore")[-half_limit:]
+        except OSError:
+            return self._read_snippet(path, limit=limit)
+        return head + "\n" + tail
 
     def _detect_error_marker(self, snippet: str) -> bool:
         lowered = snippet.lower()

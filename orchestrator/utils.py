@@ -70,7 +70,7 @@ def parse_patch_stats(patch_text: str) -> Dict[str, Any]:
         if line.startswith("+++ b/"):
             files.add(line[6:].strip())
         elif line.startswith("--- a/"):
-            continue
+            files.add(line[6:].strip())
         elif line.startswith("+") and not line.startswith("+++ "):
             insertions += 1
         elif line.startswith("-") and not line.startswith("--- "):

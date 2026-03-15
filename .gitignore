@@ -22,3 +22,5 @@ Library/
 Temp/
 Obj/
 Logs/
+
+*.egg-info/

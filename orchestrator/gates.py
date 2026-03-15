@@ -99,6 +99,7 @@ class Gatekeeper:
         loc_delta = patch_stats["loc_delta"]
         touched_files = patch_stats["touched_files"]
         budget = self._combined_budget(profiles)
+        budget.update(self._contract_budget_overrides(contract))
         max_files = budget.get("max_files_changed", 1)
         max_loc = budget.get("max_loc_changed", 50)
         effective_scope, blocklist = self._scope_controls(contract, profiles)
@@ -185,6 +186,30 @@ class Gatekeeper:
                 current = budget.get(key)
                 budget[key] = min(current, value) if current is not None else value
         return budget
+
+    def _contract_budget_overrides(self, contract: Contract) -> Dict[str, int]:
+        overrides: Dict[str, int] = {}
+        for key in ("Policy Overrides", "policy_overrides"):
+            raw = contract.metadata.get(key)
+            if not isinstance(raw, dict):
+                continue
+            if "max_files_changed" in raw:
+                try:
+                    overrides["max_files_changed"] = int(raw["max_files_changed"])
+                except (TypeError, ValueError):
+                    pass
+            if "max_loc_changed" in raw:
+                try:
+                    overrides["max_loc_changed"] = int(raw["max_loc_changed"])
+                except (TypeError, ValueError):
+                    pass
+            elif "max_patch_lines" in raw:
+                try:
+                    overrides["max_loc_changed"] = int(raw["max_patch_lines"])
+                except (TypeError, ValueError):
+                    pass
+            break
+        return overrides
 
     def _scope_controls(self, contract: Contract, profiles: List[AgentProfile]) -> tuple[List[str], List[str]]:
         writers = [profile for profile in profiles if "write_patch" in profile.allowed_actions]

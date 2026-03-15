@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -33,6 +34,116 @@ def load_json(path: Path) -> Dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
+
+
+_ENTITY_STAGE_RANKS: Dict[str, int] = {
+    "project_open_end": 10,
+    "editor_startup_reached": 20,
+    "asset_refresh_begin": 30,
+    "asset_refresh_end": 40,
+    "script_compile_begin": 50,
+    "script_compile_end": 60,
+    "workspace_import_in_progress": 65,
+    "package_manager_activity_begin": 70,
+    "package_manager_activity_end": 80,
+    "editor_ready": 90,
+    "bootstrap_execute_method_entered": 100,
+    "bootstrap_pending_dispatch_set": 105,
+    "bootstrap_monitor_registered": 110,
+    "bootstrap_waiting_for_editor_ready": 115,
+    "bootstrap_dispatch_not_ready": 120,
+    "bootstrap_dispatch_ready": 130,
+    "bootstrap_dispatch_delaycall_queued": 135,
+    "bootstrap_dispatch_immediate_run": 140,
+    "bootstrap_dispatch_invoking_run": 145,
+    "execute_method_entered": 150,
+    "start": 160,
+    "source_asset_load_begin": 165,
+    "source_asset_load_end": 170,
+    "animation_asset_load_begin": 175,
+    "animation_asset_load_end": 180,
+    "animation_asset_load_skipped": 180,
+    "instantiate_begin": 185,
+    "instantiate_end": 190,
+    "animator_setup_begin": 195,
+    "controller_build_begin": 200,
+    "controller_build_end": 205,
+    "controller_build_skipped": 205,
+    "animator_setup_end": 210,
+    "prefab_save_begin": 220,
+    "prefab_save_end": 230,
+    "artifact_write_begin": 240,
+    "artifact_write_end": 250,
+    "complete": 260,
+    "error": 260,
+}
+
+_UNITY_BOOT_STAGE_RE = re.compile(r"\[UNITY_BOOT\]\s+([A-Za-z0-9_]+)")
+_HEARTBEAT_STAGE_RE = re.compile(r"CREATE_PREFAB_HEARTBEAT .*?startup_stage=([A-Za-z0-9_]+)")
+
+
+def _stage_rank(stage: str) -> int:
+    return _ENTITY_STAGE_RANKS.get((stage or "").strip(), 0)
+
+
+def _prefer_stage(current: str, candidate: str) -> str:
+    candidate = (candidate or "").strip()
+    if not candidate:
+        return current
+    if not current or _stage_rank(candidate) >= _stage_rank(current):
+        return candidate
+    return current
+
+
+def load_stage_diagnostic(repo_logs: Path) -> Dict[str, Any]:
+    return load_json(repo_logs / "zombie_prefab_creation_diagnostic.json")
+
+
+def infer_stage_from_diagnostic(diagnostic: Dict[str, Any]) -> str:
+    if not diagnostic:
+        return ""
+    best = ""
+    for entry in diagnostic.get("stage_trace", []):
+        if isinstance(entry, dict):
+            best = _prefer_stage(best, str(entry.get("stage") or ""))
+    for key, stage in (
+        ("artifact_write_completed", "artifact_write_end"),
+        ("prefab_save_completed", "prefab_save_end"),
+        ("controller_build_completed", "controller_build_end"),
+        ("animator_setup_completed", "animator_setup_end"),
+        ("instantiate_completed", "instantiate_end"),
+        ("prefab_creation_started", "start"),
+        ("execute_method_entered", "execute_method_entered"),
+        ("editor_ready_detected", "editor_ready"),
+        ("script_compile_completed", "script_compile_end"),
+        ("asset_refresh_completed", "asset_refresh_end"),
+        ("asset_refresh_detected", "asset_refresh_begin"),
+        ("editor_startup_reached", "editor_startup_reached"),
+        ("project_open_detected", "project_open_end"),
+    ):
+        if diagnostic.get(key):
+            best = _prefer_stage(best, stage)
+    best = _prefer_stage(best, str(diagnostic.get("last_boot_stage") or ""))
+    best = _prefer_stage(best, str(diagnostic.get("last_stage") or ""))
+    return best
+
+
+def infer_stage_from_launcher_log(path: Path) -> str:
+    if not path.exists():
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    best = ""
+    for line in text.splitlines():
+        heartbeat_match = _HEARTBEAT_STAGE_RE.search(line)
+        if heartbeat_match:
+            best = _prefer_stage(best, heartbeat_match.group(1))
+        stage_match = _UNITY_BOOT_STAGE_RE.search(line)
+        if stage_match:
+            best = _prefer_stage(best, stage_match.group(1))
+    return best
 
 
 def safe_relative(path: Path, root: Path) -> str:
@@ -174,6 +285,13 @@ def artifact_presence(run_dir: Path, expect_entity: bool) -> Dict[str, bool]:
 def infer_stage(run_dir: Path, workspace_repo: Path, expect_entity: bool) -> str:
     if not expect_entity:
         return "general"
+    repo_logs = workspace_repo / "scripts" / "logs"
+    diagnostic_stage = infer_stage_from_diagnostic(load_stage_diagnostic(repo_logs))
+    if diagnostic_stage:
+        return diagnostic_stage
+    launcher_stage = infer_stage_from_launcher_log(repo_logs / "zombie_prefab_creation.log.launcher.log")
+    if launcher_stage:
+        return launcher_stage
     entity_dir = run_dir / "entity"
     if (entity_dir / "entity_validation.json").exists():
         return "finalization"
@@ -181,7 +299,6 @@ def infer_stage(run_dir: Path, workspace_repo: Path, expect_entity: bool) -> str
         return "preview"
     if (entity_dir / "entity_prefab.json").exists():
         return "prefab"
-    repo_logs = workspace_repo / "scripts" / "logs"
     if (repo_logs / "zombie_prefab_preview.json").exists():
         return "preview"
     if (repo_logs / "zombie_prefab_creation.json").exists():

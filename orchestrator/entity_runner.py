@@ -124,10 +124,15 @@ def _run_zombie_entity(
     command_results.append(prefab_result)
     prefab_artifact_path = _resolve_repo_path(workspace.repo_path, prefab_cfg["artifact"])
     prefab_data = _read_json(prefab_artifact_path)
-    prefab_success = prefab_return == 0 and prefab_data.get("prefab_created")
+    prefab_artifact_success = _prefab_artifact_indicates_success(prefab_data)
+    prefab_success = prefab_artifact_success
     if not prefab_success:
         errors.append(
             f"Prefab generation failed (returncode={prefab_return}); review {prefab_result['stdout_log']} for details."
+        )
+    elif prefab_return != 0:
+        warnings.append(
+            "Prefab artifact reports success, but the wrapper returned a nonzero exit code; continuing with preview evidence collection."
         )
 
     preview_result: Optional[Dict[str, Any]] = None
@@ -135,9 +140,18 @@ def _run_zombie_entity(
     preview_data: Dict[str, Any] = {}
     preview_success = False
     if prefab_success:
+        _append_entity_preview_trace(workspace.logs_dir, "[ENTITY_PREVIEW] trigger_begin")
         preview_result, preview_return = _run_preview_step(workspace, prefab_cfg, preview_cfg)
+        _append_entity_preview_trace(
+            workspace.logs_dir,
+            f"[ENTITY_PREVIEW] trigger_end returncode={preview_return}",
+        )
         command_results.append(preview_result)
         preview_artifact_path = _resolve_repo_path(workspace.repo_path, preview_cfg["artifact"])
+        _append_entity_preview_trace(
+            workspace.logs_dir,
+            f"[ENTITY_PREVIEW] artifact_{'found' if preview_artifact_path.exists() else 'missing'} path={preview_artifact_path}",
+        )
         preview_data = _read_json(preview_artifact_path)
         preview_success = preview_return == 0 and preview_data.get("status") != "error"
         if not preview_success:
@@ -145,6 +159,7 @@ def _run_zombie_entity(
                 f"Preview generation failed (returncode={preview_return}); review {preview_result['stdout_log']} for details."
             )
     else:
+        _append_entity_preview_trace(workspace.logs_dir, "[ENTITY_PREVIEW] trigger_skipped reason=prefab_not_classified_success")
         warnings.append("Preview step skipped because prefab generation failed.")
 
     warnings.extend(prefab_data.get("warnings", []))
@@ -414,6 +429,34 @@ def _build_validation_payload(
         "cleanup_hygiene": cleanup_hygiene,
     }
     return payload
+
+
+def _prefab_artifact_indicates_success(prefab_data: Dict[str, Any]) -> bool:
+    if not prefab_data:
+        return False
+    status = str(prefab_data.get("status") or "").strip().lower()
+    if status == "error":
+        return False
+    prefab_created = bool(prefab_data.get("prefab_created"))
+    prefab_save_completed = bool(prefab_data.get("prefab_save_completed"))
+    artifact_write_completed = bool(prefab_data.get("artifact_write_completed"))
+    last_stage = str(prefab_data.get("last_stage") or "").strip().lower()
+    if not (prefab_created or prefab_save_completed or artifact_write_completed):
+        return False
+    if prefab_created:
+        return True
+    return last_stage == "complete" and (prefab_save_completed or artifact_write_completed)
+
+
+def _append_entity_preview_trace(logs_dir: Path, line: str) -> None:
+    if not line:
+        return
+    trace_path = ensure_dir(logs_dir) / "entity-preview.trace.log"
+    try:
+        with trace_path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        return
 
 
 def _unsupported_entity(

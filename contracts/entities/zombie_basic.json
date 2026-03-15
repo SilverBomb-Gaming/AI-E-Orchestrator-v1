@@ -16,6 +16,10 @@
     "scripts/",
     "entity/"
   ],
+  "policy_overrides": {
+    "max_patch_lines": 800,
+    "max_loc_changed": 800
+  },
   "requirements": {
     "components": [
       "Animator",

@@ -40,6 +40,8 @@ AI-E-Orchestrator/
 - This repo's validated interpreter is `E:\AI projects 2025\AI-E Orchestrator v1\.venv-2\Scripts\python.exe`.
 - In VS Code, select the existing `.venv-2` interpreter if prompted. Do not create a new environment for this repo unless a future migration is explicitly documented.
 - Run preflight, status, and orchestrator commands from `.venv-2` so the PowerShell entrypoints and Python tooling stay aligned.
+- In shared umbrella workspaces, nested repo `.vscode` settings may be ignored. Prefer opening `E:\AI projects 2025\AI projects 2025.code-workspace` or the repo folder directly so this interpreter pin is applied consistently.
+- For Copilot and operator automation, prefer explicit interpreter invocation (`.\.venv-2\Scripts\python.exe ...`) over bare `python`.
 - Use `.\.venv-2\Scripts\python.exe .\scripts\show_python_env.py` for the direct Python check, or `powershell -ExecutionPolicy Bypass -File .\scripts\show_python_env.ps1` for a PowerShell-only fallback.
 - This repo currently contains multiple `.venv*` folders; treat `.venv-2` as authoritative for the Option A workflow unless the README says otherwise.
 
@@ -55,7 +57,7 @@ The orchestrator now understands `entity_generation` contracts authored as JSON 
 This Option A foundation now reuses the proven zombie prefab pipeline, keeping the first entity lane honest while leaving room to stage additional categories without bypassing policy, workspace, or artifact guarantees.
 
 ### Entity Preflight Check
-- Run `python scripts/preflight_entity_ready.py --contract contracts/entities/zombie_basic.json` before re-queuing ENTITY_0001. The script verifies `.venv-2`, queue metadata, entity contract shape, BABYLON repo paths, PowerShell launchers, log/artifact directories, Unity Editor resolution, and allowlist coverage, then emits a PASS/FAIL rollup (use `--json` for automation).
+- Run `.\.venv-2\Scripts\python.exe scripts/preflight_entity_ready.py --contract contracts/entities/zombie_basic.json` before re-queuing ENTITY_0001. The script verifies `.venv-2`, queue metadata, entity contract shape, BABYLON repo paths, PowerShell launchers, log/artifact directories, Unity Editor resolution, and allowlist coverage, then emits a PASS/FAIL rollup (use `--json` for automation).
 - Manual prerequisites the script cannot validate:
    - Sign in to the Unity Editor on this host and confirm the Babylon project opens without package prompts.
    - Keep `UNITY_EDITOR_EXE` or `Tools/unity_editor_path.txt` pointed at a licensed 6000.2.8f1 install.
@@ -63,14 +65,14 @@ This Option A foundation now reuses the proven zombie prefab pipeline, keeping t
    - Mount `E:/AI projects 2025/BABYLON VER 2` with read/write permissions and make sure large assets are synced locally.
 
 ### Checking Live Activity For Entity Runs
-- Run `python scripts/status_entity_run.py --task-id ENTITY_0001 --json` to inspect the most recent bundle (use `--run-id` to target a specific bundle). The tool reports RUNNING/COMPLETED/PARTIAL/FAILED/STALLED/UNKNOWN states, surfaces missing finalization artifacts, and, when stalled, writes `runs/<run_id>/stuck_diagnostic.json` with the latest evidence.
+- Run `.\.venv-2\Scripts\python.exe scripts/status_entity_run.py --task-id ENTITY_0001 --json` to inspect the most recent bundle (use `--run-id` to target a specific bundle). The tool reports RUNNING/COMPLETED/PARTIAL/FAILED/STALLED/UNKNOWN states, surfaces missing finalization artifacts, and, when stalled, writes `runs/<run_id>/stuck_diagnostic.json` with the latest evidence.
 - Interpretations:
    - **RUNNING**: Unity.exe detected or logs are still updatingâ€”wait before intervening.
    - **COMPLETED**: Gate report exists and resolved to ALLOW; `entity/entity_validation.json`, `report_last_run.md`, and `summary.md` are all present.
    - **PARTIAL/FAILED**: Outputs exist but gates are ASK/BLOCK or validation failed; review `gate_report.json`, `entity_validation.json`, and `report_last_run.md` inside the run bundle.
    - **STALLED**: No Unity process, logs stale past the threshold, and finalization artifacts missingâ€”the diagnostic JSON in the run folder calls out the suspected stage and evidence gaps.
 - Manual inspection tips: open `workspaces/<task>/<timestamp>/logs/*.log` for live PowerShell output and `workspaces/<task>/<timestamp>/repo/scripts/logs/Editor.log` for raw Unity traces if deeper triage is needed.
-- Old static logs viewed with `Get-Content -Wait` are not proof of a currently active run on their own; confirm with `python scripts/status_entity_run.py --task-id ENTITY_0001`, current log timestamps, and Unity process detection before assuming the workflow is still live.
+- Old static logs viewed with `Get-Content -Wait` are not proof of a currently active run on their own; confirm with `.\.venv-2\Scripts\python.exe scripts/status_entity_run.py --task-id ENTITY_0001`, current log timestamps, and Unity process detection before assuming the workflow is still live.
 
 ### Repeatability & Determinism
 - Every entity run now emits `entity/repeatability_report.json`. The report compares the freshly generated bundle with the prior ENTITY run, listing the fields inspected, whether they matched, and any mismatched values.
@@ -134,8 +136,8 @@ Queue entries now distinguish between execution outcomes:
 - `python scripts/approve_run.py --list` prints queued approvals. Add a new approval with `--task-id`, `--run-id`, and optional `--notes`; the CLI writes through the same `OperatorApprovalStore` used by the runner.
 - `python scripts/operator_dashboard.py` launches a lightweight Tkinter UI that shows queue progress, recent artifacts, pending approvals, and exposes a one-click "Approve" button wired to the same store.
 - `python tools/queue_ops.py list|reset|resume|abort|delete|unblock` provides guard-railed queue recovery actions. Every write makes a timestamped backup of `backlog/queue.json` (and `approvals.json` when touched), all mutating commands accept `--dry-run`, and destructive flags such as `--purge-runs` require `--force` so operators can safely recover stuck tasks without hand-editing JSON.
-- `python -m orchestrator.night_cycle --dry-run --max-runs 3 --pack contracts/validation_pack` runs the synthetic validation pack in snapshot mode, logging results into `runs_index.jsonl` and `reports/night_cycle_*.md` without mutating the main queue.
-- `python -m orchestrator.night_cycle --max-runs 3 --max-minutes 10` performs a bounded depth run against the real queue (stopping on ASK/BLOCK by default). Use `--task-filter`, `--pack-id`, or `--cooldown-seconds` to further constrain automation.
+- `.\.venv-2\Scripts\python.exe -m orchestrator.night_cycle --dry-run --max-runs 3 --pack contracts/validation_pack` runs the synthetic validation pack in snapshot mode, logging results into `runs_index.jsonl` and `reports/night_cycle_*.md` without mutating the main queue.
+- `.\.venv-2\Scripts\python.exe -m orchestrator.night_cycle --max-runs 3 --max-minutes 10` performs a bounded depth run against the real queue (stopping on ASK/BLOCK by default). Use `--task-filter`, `--pack-id`, or `--cooldown-seconds` to further constrain automation.
 - `python tools/verify_stability_core.py` runs the local file/layout verifier (add `--json` for machine-readable output) so operators can confirm Stability Core v1 prerequisites before queue work begins.
 
 These tools eliminate ad-hoc JSON editing while keeping the audit trail centralized.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 from typing import Any, Dict, Iterable, List, Literal, Sequence
 
 from .contracts import Contract
@@ -20,7 +21,7 @@ _NETWORK_KEYWORDS = (
     "https://",
 )
 _DESKTOP_CAPTURE_KEYWORDS = (
-    "screenshot",
+    "run_unity_screenshot",
     "capturewindow",
     "snippingtool",
     "desktopcapture",
@@ -56,6 +57,20 @@ def _normalize_list(value: Any) -> List[str]:
     if isinstance(value, (list, tuple, set)):
         return [str(item) for item in value if str(item).strip()]
     return [str(value)]
+
+
+def _attempts_desktop_capture(shell: str) -> bool:
+    normalized = (shell or "").lower()
+    if not normalized:
+        return False
+    for keyword in _DESKTOP_CAPTURE_KEYWORDS:
+        if keyword == "run_unity_screenshot":
+            if re.search(r"(^|[^a-z0-9_])run_unity_screenshot(?:\.ps1)?([^a-z0-9_]|$)", normalized):
+                return True
+            continue
+        if keyword in normalized:
+            return True
+    return False
 
 
 @dataclass
@@ -257,7 +272,7 @@ class PolicyEngine:
                     f"Command '{result.get('name', 'command')}' includes a network keyword.",
                     evidence=evidence,
                 )
-            if not config.allow_desktop_capture and any(keyword in shell for keyword in _DESKTOP_CAPTURE_KEYWORDS):
+            if not config.allow_desktop_capture and _attempts_desktop_capture(shell):
                 add_violation(
                     "desktop_capture",
                     f"Command '{result.get('name', 'command')}' attempts desktop capture.",

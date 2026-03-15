@@ -11,6 +11,12 @@
       "run_id": "20260305_170747_0020",
       "tag": "zombie_death_probe_v1",
       "timestamp": "20260306_144646"
+    },
+    {
+      "task_id": "LEVEL_0001",
+      "run_id": "20260314_151340_LEVEL_0001",
+      "tag": "official_playable_sandbox_baseline",
+      "timestamp": "20260314_162150"
     }
   ]
 }
