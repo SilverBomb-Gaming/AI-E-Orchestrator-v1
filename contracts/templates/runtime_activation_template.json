@@ -1,0 +1,257 @@
+{
+  "activation_input": {
+    "task_graph_node": {
+      "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+      "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+      "task_type": "task_graph_emission",
+      "objective": "Emit a deterministic task graph from the validated request.",
+      "dependencies": [
+        "REQ_AIE_RUNTIME_ACTIVATION_TEST_ANALYSIS"
+      ],
+      "inputs": {
+        "phase_id": "PHASE_3"
+      },
+      "expected_outputs": [
+        "task_graph.json"
+      ],
+      "validation_rules": [],
+      "retry_policy": {
+        "max_attempts": 1,
+        "retry_on": [],
+        "operator_approval_required": false
+      },
+      "policy_level": "architecture_only",
+      "risk_level": "medium",
+      "assigned_agent": "PlannerAgent",
+      "status": "pending"
+    },
+    "execution_input": {
+      "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+      "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+      "task_type": "task_graph_emission",
+      "objective": "Emit a deterministic task graph from the validated request.",
+      "dependencies": [
+        "REQ_AIE_RUNTIME_ACTIVATION_TEST_ANALYSIS"
+      ],
+      "policy_level": "architecture_only",
+      "expected_outputs": [
+        "selection_output.json",
+        "approval_verdict.json",
+        "operator_report.md"
+      ],
+      "validation_placeholders": [
+        "selection_status",
+        "approval_verdict",
+        "activation_status"
+      ],
+      "runtime_target_placeholder": "unity_editor",
+      "dry_run": true
+    },
+    "adapter_registry": {
+      "registrations": [
+        {
+          "adapter_id": "adapter.testing.future",
+          "adapter_type": "testing",
+          "supported_task_types": [
+            "task_graph_emission",
+            "report_contract_preparation"
+          ],
+          "supported_targets": [
+            "workspace_copy",
+            "unity_editor"
+          ],
+          "allowed_actions": [
+            "bounded_contract_validation"
+          ],
+          "requires_approval": [
+            "live_run"
+          ],
+          "dry_run_supported": true,
+          "live_run_supported": false
+        }
+      ],
+      "discoveries": [
+        {
+          "adapter_id": "adapter.testing.future",
+          "adapter_status": "registered",
+          "capabilities": {
+            "dry_run_supported": true,
+            "live_run_supported": false,
+            "supported_targets": [
+              "workspace_copy",
+              "unity_editor"
+            ],
+            "supported_task_types": [
+              "task_graph_emission",
+              "report_contract_preparation"
+            ]
+          },
+          "priority": 20,
+          "availability": "available"
+        },
+        {
+          "adapter_id": "adapter.unity.future",
+          "adapter_status": "registered",
+          "capabilities": {
+            "dry_run_supported": true,
+            "live_run_supported": false,
+            "supported_targets": [
+              "unity_editor"
+            ],
+            "supported_task_types": [
+              "scene_edit",
+              "playmode_validation"
+            ]
+          },
+          "priority": 10,
+          "availability": "planned"
+        }
+      ]
+    }
+  },
+  "selection_output": {
+    "selection_input": {
+      "selection_id": "SEL_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+      "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+      "task_type": "task_graph_emission",
+      "runtime_target": "unity_editor",
+      "policy_level": "architecture_only",
+      "dry_run": true,
+      "approval_required": true,
+      "expected_outputs": [
+        "selection_output.json",
+        "approval_verdict.json",
+        "operator_report.md"
+      ]
+    },
+    "selection_output": {
+      "selection_id": "SEL_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "chosen_adapter_id": "adapter.testing.future",
+      "candidate_adapters": [
+        "adapter.testing.future",
+        "adapter.unity.future"
+      ],
+      "selection_reason": "Deterministic dry-run adapter match selected from the registry snapshot.",
+      "blocked": true,
+      "blocked_reason": "Future live runtime activation remains disabled until an approved runtime phase exists.",
+      "approval_required": true,
+      "escalation_required": true,
+      "state": "approval_pending"
+    }
+  },
+  "approval_verdict": {
+    "approval_request": {
+      "approval_id": "APP_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+      "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "adapter_id": "adapter.testing.future",
+      "approval_reason": "Live bounded runtime activation is not enabled in this phase.",
+      "requested_action": "Allow a future live activation through a bounded adapter.",
+      "policy_level": "architecture_only",
+      "blocking": true,
+      "safe_alternative": "Remain in deterministic dry-run activation mode."
+    },
+    "approval_decision": {
+      "approval_id": "APP_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+      "decision": "deferred",
+      "decided_by": "operator_placeholder",
+      "decided_at": "2026-03-15T00:00:00Z",
+      "notes": "Architecture-only scaffold; no live activation approval path is active."
+    },
+    "gate_verdict": {
+      "verdict": "approval_pending",
+      "proceed_allowed": false,
+      "blocked_until_approved": true,
+      "escalation_required": true,
+      "denial_reason": "Future live runtime activation remains blocked pending explicit approval."
+    }
+  },
+  "activation_result": {
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "chosen_adapter_id": "adapter.testing.future",
+    "candidate_adapters": [
+      "adapter.testing.future",
+      "adapter.unity.future"
+    ],
+    "selection_status": "approval_pending",
+    "approval_verdict": "approval_pending",
+    "activation_status": "approval_required",
+    "blocked": true,
+    "blocked_reason": "Future live runtime activation remains blocked pending explicit approval.",
+    "dry_run": true,
+    "artifacts_registered": 2,
+    "report_handoff_ready": true,
+    "timestamp": "2026-03-15T00:00:00Z"
+  },
+  "artifact_persistence_result": {
+    "artifact_registrations": [
+      {
+        "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION_001",
+        "artifact_type": "runtime_activation_result",
+        "artifact_source": "runtime_activation_harness",
+        "produced_by_task": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+        "produced_by_adapter": "adapter.testing.future",
+        "artifact_path": "runs/aie_runtime_activation_test/activation_result.json",
+        "artifact_timestamp": "2026-03-15T00:00:00Z"
+      },
+      {
+        "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION_002",
+        "artifact_type": "operator_report",
+        "artifact_source": "runtime_activation_harness",
+        "produced_by_task": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+        "produced_by_adapter": "adapter.testing.future",
+        "artifact_path": "runs/aie_runtime_activation_test/operator_report.md",
+        "artifact_timestamp": "2026-03-15T00:00:00Z"
+      }
+    ],
+    "persistence_results": [
+      {
+        "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION_001",
+        "stored": false,
+        "storage_location": "contract_only",
+        "validation_attached": true,
+        "retention_policy": "architecture_scaffold_only"
+      },
+      {
+        "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION_002",
+        "stored": false,
+        "storage_location": "contract_only",
+        "validation_attached": true,
+        "retention_policy": "architecture_scaffold_only"
+      }
+    ]
+  },
+  "report_handoff": {
+    "operator_summary": "Runtime activation harness completed a deterministic dry-run decision flow without invoking any live adapters.",
+    "facts_payload": [
+      "Task node: REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH (task_graph_emission)",
+      "Chosen adapter: adapter.testing.future",
+      "Candidate adapters: adapter.testing.future, adapter.unity.future",
+      "Approval verdict: approval_pending",
+      "Activation status: approval_required",
+      "Artifact persistence handoffs: 2 contract-only entries."
+    ],
+    "assumptions_payload": [
+      "Adapter discovery, selection, approval, and persistence remain architecture-only contracts.",
+      "No live bounded execution, Unity execution, Blender execution, or gameplay mutation occurred."
+    ],
+    "recommendations_payload": [
+      "Keep runtime activation limited to dry-run decision scaffolds until a future approved runtime phase exists.",
+      "Use these outputs for contract review only, not as evidence of real adapter execution."
+    ],
+    "timestamp": "2026-03-15T00:00:00Z",
+    "required_report_sections": [
+      "SUMMARY",
+      "FACTS",
+      "ASSUMPTIONS",
+      "RECOMMENDATIONS",
+      "TIMESTAMP"
+    ]
+  }
+}
