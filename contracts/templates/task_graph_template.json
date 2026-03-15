@@ -1,0 +1,75 @@
+{
+  "request": {
+    "request_id": "REQ_20260315_0001",
+    "session_id": "SESSION_LOCAL_001",
+    "channel": "cli_chat",
+    "operator_prompt": "Create a zombie test arena with two enemies and a pistol.",
+    "created_at": "2026-03-15T00:00:00Z",
+    "intent": "create_sandbox"
+  },
+  "tasks": [
+    {
+      "task_id": "TASK_001",
+      "request_id": "REQ_20260315_0001",
+      "task_type": "plan_generation",
+      "objective": "Interpret the request and build a bounded execution plan.",
+      "dependencies": [],
+      "inputs": {
+        "scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
+      },
+      "expected_outputs": [
+        "task_graph.json",
+        "planning_summary.md"
+      ],
+      "validation_rules": [
+        {
+          "rule_id": "VR_PLAN_001",
+          "description": "Plan must remain inside approved project scope."
+        }
+      ],
+      "retry_policy": {
+        "max_attempts": 1,
+        "retry_on": [],
+        "operator_approval_required": false
+      },
+      "policy_level": "standard",
+      "risk_level": "medium",
+      "assigned_agent": "PlannerAgent",
+      "status": "pending"
+    },
+    {
+      "task_id": "TASK_002",
+      "request_id": "REQ_20260315_0001",
+      "task_type": "validation",
+      "objective": "Validate outputs and generate an operator report.",
+      "dependencies": [
+        "TASK_001"
+      ],
+      "inputs": {
+        "required_logs": [
+          "policy_decisions",
+          "validation_results"
+        ]
+      },
+      "expected_outputs": [
+        "summary.md",
+        "gate_report.json"
+      ],
+      "validation_rules": [
+        {
+          "rule_id": "VR_REPORT_001",
+          "description": "Report must include facts, assumptions, and recommendations."
+        }
+      ],
+      "retry_policy": {
+        "max_attempts": 1,
+        "retry_on": [],
+        "operator_approval_required": false
+      },
+      "policy_level": "strict",
+      "risk_level": "medium",
+      "assigned_agent": "ReportAgent",
+      "status": "pending"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "request_id": "REQ_20260315_0001",
+  "session_id": "SESSION_LOCAL_001",
+  "channel": "cli_chat",
+  "operator_prompt": "Create a zombie test arena with two enemies and a pistol.",
+  "created_at": "2026-03-15T00:00:00Z",
+  "intent": "create_sandbox",
+  "clarification_needed": false,
+  "context": {
+    "project": "BABYLON VER 2",
+    "level_id": "LEVEL_0001",
+    "scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
+  },
+  "constraints": [
+    "Do not create new Python environments.",
+    "Do not modify gameplay systems.",
+    "Do not bypass policy or validation layers."
+  ],
+  "requested_artifacts": [
+    "summary.md",
+    "gate_report.json",
+    "report_last_run.md"
+  ]
+}

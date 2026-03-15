@@ -148,9 +148,12 @@ These tools eliminate ad-hoc JSON editing while keeping the audit trail centrali
 - The default `python -m pytest` command honors these markers, so CI can run `-m fast` on every push and schedule Unity sweeps in a different lane without reconfiguring the suite.
 
 ## Timestamp Policy
-- Every automated response, summary, or gate write-up must end with `COPILOT_RESPONSE_TIMESTAMP: <ISO8601Z>` so auditors can correlate prose with the artifacts that back it.
-- Use `orchestrator.utils.utc_timestamp(compact=False)` (or equivalent) when scripts need to generate the timestamp automatically; manual responses should follow the same format.
-- Run bundles already capture generation time in `run_meta.json`, but repeating the timestamp in human-facing docs keeps the policy visible and enforceable.
+- Every operator-facing Copilot report must use this exact top-to-bottom section order: `SUMMARY`, `FACTS`, `ASSUMPTIONS`, `RECOMMENDATIONS`, `TIMESTAMP`.
+- `SUMMARY` is mandatory and must be the first section in the report.
+- `TIMESTAMP` is mandatory and must be the final section in the report.
+- Do not place timestamps at the top of the report.
+- Use `orchestrator.utils.utc_timestamp(compact=False)` (or equivalent) when scripts need to generate the final ISO 8601 timestamp automatically.
+- Run bundles already capture generation time in `run_meta.json`, but repeating the timestamp in the final report section keeps the policy visible and enforceable.
 
 ## Current Limitations
 - Agents are deterministic placeholders; hook them up to LLM backends later.
@@ -158,5 +161,17 @@ These tools eliminate ad-hoc JSON editing while keeping the audit trail centrali
 - Gate heuristics are conservative and rely on metadata from agent profiles and contracts.
 
 Contributions should maintain local-only execution, preserve evidence immutability, and extend gates/contracts before expanding agent autonomy.
+
+## Remote Work Architecture Pack
+The current remote-work phase is architecture-only and intentionally avoids gameplay or project-structure changes. The repo now includes additive blueprint artifacts for the conversational AI-E expansion:
+
+- [docs/REMOTE_WORK_PHASE_HANDOFF_2026-03-15.md](docs/REMOTE_WORK_PHASE_HANDOFF_2026-03-15.md) captures the approved architecture handoff, remote-work guardrails, and phase sequence.
+- `orchestrator/architecture_blueprint.py` defines typed request, task-graph, reporting, provider, and gateway contracts for future implementation work.
+- `contracts/templates/conversational_request_template.json` and `contracts/templates/task_graph_template.json` provide deterministic templates for conversational ingress and dependency-aware planning.
+- `orchestrator/request_schema_loader.py` validates conversational request contracts and loads them into typed architecture objects.
+- `orchestrator/planner_stub.py` and `orchestrator/task_graph_emitter.py` provide a non-runtime planning stub that emits deterministic task-graph contracts only.
+- `orchestrator/report_contract.py` provides additive formatter and validator helpers for the canonical operator-facing report order.
+
+These assets are documentation and design scaffolding only. They are not wired into the live runner yet, so baseline orchestrator behavior remains unchanged.
 
 
