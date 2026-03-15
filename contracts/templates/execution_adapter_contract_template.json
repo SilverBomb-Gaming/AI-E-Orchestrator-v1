@@ -1,0 +1,89 @@
+{
+  "adapter_capability": {
+    "adapter_id": "adapter.unity.future",
+    "adapter_type": "unity",
+    "supported_task_types": [
+      "scene_edit",
+      "playmode_validation"
+    ],
+    "supported_runtime_targets": [
+      "unity_editor"
+    ],
+    "allowed_actions": [
+      "bounded_scene_edit",
+      "bounded_validation"
+    ],
+    "denied_actions": [
+      "unbounded_repo_mutation",
+      "policy_bypass"
+    ],
+    "requires_approval_for": [
+      "live_run"
+    ],
+    "dry_run_supported": true,
+    "live_run_supported": false,
+    "notes": [
+      "Contract-only scaffold.",
+      "No live bounded execution is implemented."
+    ]
+  },
+  "execution_request_handoff": {
+    "execution_id": "EXEC_REQ_20260315_0001_GRAPH",
+    "request_id": "REQ_20260315_0001",
+    "task_id": "REQ_20260315_0001_GRAPH",
+    "adapter_target": "unity_editor",
+    "task_type": "task_graph_emission",
+    "objective": "Emit a deterministic task-graph contract from the validated conversational request.",
+    "policy_level": "architecture_only",
+    "dry_run": true,
+    "approval_boundary": {
+      "approval_required": true,
+      "approval_reason": "Live execution adapters are not enabled in this phase.",
+      "blocked_until_approved": true
+    },
+    "expected_outputs": [
+      "task_graph.json"
+    ],
+    "validation_requirements": [
+      "validation_status",
+      "validation_notes",
+      "blocking_issues"
+    ]
+  },
+  "execution_response": {
+    "execution_id": "EXEC_REQ_20260315_0001_GRAPH",
+    "adapter_id": "adapter.unity.future",
+    "status": "planned",
+    "artifacts": [
+      {
+        "artifact_id": "ART_REQ_20260315_0001_GRAPH_001",
+        "artifact_type": "structured_report",
+        "path": "runs/aie_dry_run_execution_test/task_graph.json",
+        "produced_by": "adapter.unity.future",
+        "related_task_id": "REQ_20260315_0001_GRAPH",
+        "summary": "Placeholder response artifact for adapter contract review."
+      }
+    ],
+    "validation_status": "pending",
+    "warnings": [
+      "Live bounded execution is not implemented."
+    ],
+    "errors": [],
+    "started_at": "2026-03-15T00:00:00Z",
+    "finished_at": "2026-03-15T00:00:00Z",
+    "operator_attention_required": true,
+    "approval_boundary": {
+      "approval_required": true,
+      "approval_reason": "Execution cannot proceed without explicit operator approval.",
+      "blocked_until_approved": true
+    },
+    "failure_classification": {
+      "failure_type": "approval_gate",
+      "failure_scope": "adapter_boundary",
+      "retry_recommended": false,
+      "retry_reason": "Await explicit approval or a future runtime phase.",
+      "escalation_required": true,
+      "blocking": true
+    }
+  }
+}
