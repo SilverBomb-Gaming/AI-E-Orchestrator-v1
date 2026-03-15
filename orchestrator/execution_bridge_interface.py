@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Mapping, Protocol
 from .architecture_blueprint import TaskContract, required_response_sections
 
 
-ExecutionStatus = Literal["planned", "ready", "completed", "failed", "blocked"]
+ExecutionStatus = Literal["planned", "ready", "completed", "failed", "blocked", "simulated_success"]
 ValidationStatus = Literal["pending", "passed", "failed", "needs_review"]
 
 
