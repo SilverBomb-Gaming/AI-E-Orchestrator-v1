@@ -1,0 +1,47 @@
+{
+  "execution_permit_request": {
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "selected_adapter_id": "adapter.testing.future",
+    "authorization_state": "authorized_for_dry_run",
+    "authorized_for": "dry_run",
+    "policy_level": "architecture_only",
+    "dry_run": true,
+    "permit_requested_at": "2026-03-15T00:00:00Z"
+  },
+  "execution_permit_record": {
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "permit_state": "issued_for_dry_run",
+    "issued": true,
+    "issued_for": "dry_run",
+    "issued_by": "operator_placeholder",
+    "issued_timestamp": "2026-03-15T00:00:00Z",
+    "permit_reason": "Permit issued according to the bounded authorization record.",
+    "scope_limit": "dry_run_only",
+    "expires_at": "2026-03-16T00:00:00Z",
+    "notes": "Dry-run permit issues a bounded dry-run ticket only."
+  },
+  "execution_permit_verdict": {
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "permit_state": "issued_for_dry_run",
+    "proceed_allowed": true,
+    "blocked": false,
+    "blocked_reason": "",
+    "scope_limit": "dry_run_only",
+    "requires_additional_review": false,
+    "escalation_required": false
+  },
+  "state_transitions": {
+    "authorized_for_dry_run": "permit_requested",
+    "permit_requested+approve": "issued_for_dry_run",
+    "permit_requested+deny": "not_issued",
+    "permit_requested+escalate": "requires_additional_review",
+    "not_authorized": "not_issued",
+    "blocked": "blocked"
+  }
+}
