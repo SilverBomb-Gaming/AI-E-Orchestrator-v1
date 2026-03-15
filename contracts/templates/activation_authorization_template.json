@@ -1,0 +1,45 @@
+{
+  "activation_authorization_request": {
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "review_id": "REV_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "selected_adapter_id": "adapter.testing.future",
+    "review_decision": "approve",
+    "review_result_state": "ready_for_dry_run",
+    "policy_level": "architecture_only",
+    "dry_run": true,
+    "authorization_requested_at": "2026-03-15T00:00:00Z"
+  },
+  "activation_authorization_record": {
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "authorization_state": "authorized_for_dry_run",
+    "authorized": true,
+    "authorized_for": "dry_run",
+    "authorized_by": "operator_placeholder",
+    "authorization_timestamp": "2026-03-15T00:00:00Z",
+    "authorization_reason": "Authorization granted for deterministic dry-run activation only.",
+    "expires_at": "2026-03-16T00:00:00Z",
+    "notes": "Dry-run authorization permits deterministic activation only."
+  },
+  "activation_authorization_verdict": {
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "authorization_state": "authorized_for_dry_run",
+    "proceed_allowed": true,
+    "requires_additional_review": false,
+    "blocked": false,
+    "blocked_reason": "",
+    "escalation_required": false
+  },
+  "state_transitions": {
+    "ready_for_dry_run": "authorization_requested",
+    "authorization_requested+approve": "authorized_for_dry_run",
+    "authorization_requested+deny": "not_authorized",
+    "authorization_requested+escalate": "requires_additional_review",
+    "denied": "not_authorized",
+    "blocked": "blocked"
+  }
+}
