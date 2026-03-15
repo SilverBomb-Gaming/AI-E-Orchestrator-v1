@@ -1,0 +1,42 @@
+{
+  "activation_review_request": {
+    "review_id": "REV_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "selected_adapter_id": "adapter.testing.future",
+    "activation_state": "approval_required",
+    "approval_required": true,
+    "blocked": true,
+    "blocked_reason": "Future live runtime activation remains blocked pending explicit approval.",
+    "policy_level": "architecture_only",
+    "dry_run": true
+  },
+  "activation_review_decision": {
+    "review_id": "REV_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "decision": "approve",
+    "reviewed_by": "operator_placeholder",
+    "review_timestamp": "2026-03-15T00:00:00Z",
+    "notes": "Dry-run activation review approves transition to ready_for_dry_run only."
+  },
+  "activation_verdict": {
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "review_decision": "approve",
+    "result_state": "ready_for_dry_run",
+    "result_reason": "Activation review approved the dry-run path.",
+    "approved": true,
+    "blocked": false,
+    "ready_for_dry_run": true,
+    "denied": false,
+    "escalation_required": false
+  },
+  "state_transitions": {
+    "approval_required": "approval_pending",
+    "approval_pending+approve": "ready_for_dry_run",
+    "approval_pending+deny": "denied",
+    "blocked+approve": "blocked",
+    "approval_pending+request_changes": "approval_pending",
+    "approval_pending+escalate": "escalated"
+  }
+}
