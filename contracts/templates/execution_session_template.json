@@ -1,0 +1,75 @@
+{
+  "execution_session_request": {
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "activation_id": "ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "selected_adapter_id": "adapter.testing.future",
+    "permit_state": "issued_for_dry_run",
+    "issued_for": "dry_run",
+    "policy_level": "architecture_only",
+    "dry_run": true,
+    "session_requested_at": "2026-03-15T00:00:00Z"
+  },
+  "execution_session_record": {
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "session_state": "session_open",
+    "opened": true,
+    "opened_by": "operator_placeholder",
+    "opened_timestamp": "2026-03-15T00:00:00Z",
+    "session_reason": "Session opened from an issued execution permit.",
+    "scope_limit": "dry_run_only",
+    "time_budget_seconds": 300,
+    "expires_at": "2026-03-16T00:00:00Z",
+    "cancelled": false,
+    "cancelled_at": "",
+    "cancellation_reason": "",
+    "notes": "Dry-run session opens a bounded dry-run execution window only."
+  },
+  "execution_session_verdict": {
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "session_state": "session_open",
+    "proceed_allowed": true,
+    "blocked": false,
+    "blocked_reason": "",
+    "scope_limit": "dry_run_only",
+    "time_budget_seconds": 300,
+    "requires_additional_review": false,
+    "escalation_required": false
+  },
+  "execution_session_heartbeat": {
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "heartbeat_timestamp": "2026-03-15T00:00:00Z",
+    "status": "open",
+    "active_task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "progress_note": "Dry-run session opened within the bounded permit scope.",
+    "warnings": [
+      "Simulation-only session; no live engine started."
+    ],
+    "operator_attention_required": false
+  },
+  "execution_session_stop_conditions": {
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "stop_reason": "not_triggered",
+    "time_budget_exceeded": false,
+    "scope_exceeded": false,
+    "operator_cancelled": false,
+    "policy_blocked": false,
+    "failure_limit_reached": false,
+    "completed": false
+  },
+  "state_transitions": {
+    "issued_for_dry_run": "session_requested",
+    "session_requested+approve": "session_open",
+    "session_open+completed": "session_completed",
+    "session_open+cancel": "session_cancelled",
+    "session_open+expire": "session_expired",
+    "session_open+block": "session_blocked",
+    "session_open+failure_limit": "session_failed",
+    "requires_additional_review": "requires_additional_review"
+  }
+}
