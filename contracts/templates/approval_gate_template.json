@@ -1,0 +1,27 @@
+{
+  "approval_request": {
+    "approval_id": "APP_REQ_20260315_0001_GRAPH",
+    "request_id": "REQ_20260315_0001",
+    "execution_id": "EXEC_REQ_20260315_0001_GRAPH",
+    "adapter_id": "adapter.unity.future",
+    "approval_reason": "Live bounded execution is not enabled in this phase.",
+    "requested_action": "Allow a future live adapter run.",
+    "policy_level": "architecture_only",
+    "blocking": true,
+    "safe_alternative": "Remain in dry-run mode until runtime approval rules exist."
+  },
+  "approval_decision": {
+    "approval_id": "APP_REQ_20260315_0001_GRAPH",
+    "decision": "deferred",
+    "decided_by": "operator_placeholder",
+    "decided_at": "2026-03-15T00:00:00Z",
+    "notes": "Architecture-only scaffold; no live approval path is active."
+  },
+  "gate_verdict": {
+    "verdict": "approval_pending",
+    "proceed_allowed": false,
+    "blocked_until_approved": true,
+    "escalation_required": true,
+    "denial_reason": "Execution remains blocked pending a future approved live-runtime phase."
+  }
+}

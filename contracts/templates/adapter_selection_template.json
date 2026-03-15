@@ -1,0 +1,30 @@
+{
+  "selection_input": {
+    "selection_id": "SEL_REQ_20260315_0001_GRAPH",
+    "request_id": "REQ_20260315_0001",
+    "execution_id": "EXEC_REQ_20260315_0001_GRAPH",
+    "task_id": "REQ_20260315_0001_GRAPH",
+    "task_type": "task_graph_emission",
+    "runtime_target": "unity_editor",
+    "policy_level": "architecture_only",
+    "dry_run": true,
+    "approval_required": true,
+    "expected_outputs": [
+      "task_graph.json"
+    ]
+  },
+  "selection_output": {
+    "selection_id": "SEL_REQ_20260315_0001_GRAPH",
+    "chosen_adapter_id": "adapter.unity.future",
+    "candidate_adapters": [
+      "adapter.unity.future",
+      "adapter.testing.future"
+    ],
+    "selection_reason": "Unity adapter is the closest future match for the runtime target.",
+    "blocked": true,
+    "blocked_reason": "Live bounded execution adapters are disabled in this phase.",
+    "approval_required": true,
+    "escalation_required": true,
+    "state": "approval_pending"
+  }
+}
