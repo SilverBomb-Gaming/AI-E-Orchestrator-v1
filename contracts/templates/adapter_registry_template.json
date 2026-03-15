@@ -1,0 +1,39 @@
+{
+  "adapter_registration": {
+    "adapter_id": "adapter.unity.future",
+    "adapter_type": "unity",
+    "supported_task_types": [
+      "scene_edit",
+      "playmode_validation"
+    ],
+    "supported_targets": [
+      "unity_editor"
+    ],
+    "allowed_actions": [
+      "bounded_scene_edit",
+      "bounded_validation"
+    ],
+    "requires_approval": [
+      "live_run"
+    ],
+    "dry_run_supported": true,
+    "live_run_supported": false
+  },
+  "discovery_output": {
+    "adapter_id": "adapter.unity.future",
+    "adapter_status": "registered",
+    "capabilities": {
+      "dry_run_supported": true,
+      "live_run_supported": false,
+      "supported_targets": [
+        "unity_editor"
+      ],
+      "supported_task_types": [
+        "scene_edit",
+        "playmode_validation"
+      ]
+    },
+    "priority": 10,
+    "availability": "planned"
+  }
+}
