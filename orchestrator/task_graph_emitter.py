@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from typing import List
 
-from .architecture_blueprint import RetryPolicy, TaskContract, TaskGraph, ValidationRule, ConversationalRequest
+from .architecture_blueprint import ConversationalRequest, RetryPolicy, TaskContract, TaskGraph, ValidationRule, required_response_sections
 from .utils import slugify
+
+
+_TASK_GRAPH_PHASE_ID = "PHASE_3"
 
 
 def infer_request_type(request: ConversationalRequest) -> str:
@@ -55,7 +58,7 @@ def emit_task_graph(request: ConversationalRequest) -> TaskGraph:
             dependencies=[_task_id(request.request_id, "intake")],
             inputs={
                 "request_id": request.request_id,
-                "phase_label": _phase_label(request_type),
+                "phase_id": _TASK_GRAPH_PHASE_ID,
                 "requested_artifacts": list(request.requested_artifacts),
             },
             expected_outputs=["task_graph.json"],
@@ -79,7 +82,7 @@ def emit_task_graph(request: ConversationalRequest) -> TaskGraph:
             objective="Prepare operator-facing reporting placeholders for the planned work.",
             dependencies=[_task_id(request.request_id, "graph")],
             inputs={
-                "required_sections": ["SUMMARY", "FACTS", "ASSUMPTIONS", "RECOMMENDATIONS", "TIMESTAMP"],
+                "required_sections": required_response_sections(),
                 "requested_artifacts": list(request.requested_artifacts),
             },
             expected_outputs=["report_contract.json", "report_outline.md"],
@@ -102,14 +105,6 @@ def emit_task_graph(request: ConversationalRequest) -> TaskGraph:
 
 def _task_id(request_id: str, suffix: str) -> str:
     return f"{slugify(request_id).replace('-', '_').upper()}_{suffix.upper()}"
-
-
-def _phase_label(request_type: str) -> str:
-    if request_type.endswith("report_request"):
-        return "PHASE_D"
-    if request_type.endswith("test_request"):
-        return "PHASE_C"
-    return "PHASE_B"
 
 
 __all__ = ["emit_task_graph", "infer_request_type"]

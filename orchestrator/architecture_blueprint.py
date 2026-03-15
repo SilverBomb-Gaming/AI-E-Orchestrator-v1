@@ -160,6 +160,9 @@ class ArtifactRecord:
 class OperatorReport:
     request_id: str
     summary: str
+    facts: List[str] = field(default_factory=list)
+    assumptions: List[str] = field(default_factory=list)
+    timestamp: str = ""
     task_outcomes: List[Dict[str, Any]] = field(default_factory=list)
     artifacts: List[ArtifactRecord] = field(default_factory=list)
     validation_results: List[Dict[str, Any]] = field(default_factory=list)
@@ -169,6 +172,9 @@ class OperatorReport:
         return {
             "request_id": self.request_id,
             "summary": self.summary,
+            "facts": list(self.facts),
+            "assumptions": list(self.assumptions),
+            "timestamp": self.timestamp,
             "task_outcomes": [_stable_value(item) for item in self.task_outcomes],
             "artifacts": [artifact.to_payload() for artifact in self.artifacts],
             "validation_results": [_stable_value(item) for item in self.validation_results],

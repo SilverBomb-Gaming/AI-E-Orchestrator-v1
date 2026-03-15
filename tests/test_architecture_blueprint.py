@@ -5,6 +5,7 @@ import pytest
 
 from orchestrator.architecture_blueprint import (
     ConversationalRequest,
+    OperatorReport,
     RetryPolicy,
     TaskContract,
     TaskGraph,
@@ -114,6 +115,29 @@ def test_remote_work_defaults_match_handoff_rules():
     ]
 
 
+def test_operator_report_payload_tracks_canonical_sections():
+    report = OperatorReport(
+        request_id="REQ_001",
+        summary="Architecture scaffold preserved.",
+        facts=["Checkpoint created."],
+        assumptions=["Runtime remains unwired."],
+        recommendations=["Keep future work additive."],
+        timestamp="2026-03-15T00:00:00Z",
+    )
+
+    assert report.to_payload() == {
+        "request_id": "REQ_001",
+        "summary": "Architecture scaffold preserved.",
+        "facts": ["Checkpoint created."],
+        "assumptions": ["Runtime remains unwired."],
+        "timestamp": "2026-03-15T00:00:00Z",
+        "task_outcomes": [],
+        "artifacts": [],
+        "validation_results": [],
+        "recommendations": ["Keep future work additive."],
+    }
+
+
 def test_architecture_templates_are_valid_json():
     request_template = ROOT / "contracts" / "templates" / "conversational_request_template.json"
     graph_template = ROOT / "contracts" / "templates" / "task_graph_template.json"
@@ -123,5 +147,13 @@ def test_architecture_templates_are_valid_json():
 
     assert request_payload["request_id"].startswith("REQ_")
     assert request_payload["channel"] == "cli_chat"
+    assert request_payload["clarification_needed"] is False
     assert graph_payload["tasks"][0]["assigned_agent"] == "PlannerAgent"
-    assert graph_payload["tasks"][1]["dependencies"] == ["TASK_001"]
+    assert [task["task_type"] for task in graph_payload["tasks"]] == [
+        "request_analysis",
+        "task_graph_emission",
+        "report_contract_preparation",
+    ]
+    assert graph_payload["tasks"][1]["dependencies"] == ["REQ_20260315_0001_INTAKE"]
+    assert graph_payload["tasks"][1]["inputs"]["phase_id"] == "PHASE_3"
+    assert graph_payload["dependency_map"]["REQ_20260315_0001_REPORT"] == ["REQ_20260315_0001_GRAPH"]

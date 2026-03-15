@@ -37,6 +37,16 @@ def test_schema_loader_failure_path():
     assert "operator_prompt: is required" in str(exc.value)
 
 
+def test_schema_loader_rejects_unknown_top_level_fields():
+    payload = _request_payload()
+    payload["provider"] = {"name": "stub"}
+
+    with pytest.raises(RequestSchemaValidationError) as exc:
+        validate_request_payload(payload)
+
+    assert "provider: is not supported by the current request schema" in str(exc.value)
+
+
 def test_schema_loader_from_file(tmp_path):
     payload_path = tmp_path / "request.json"
     payload_path.write_text(json.dumps(_request_payload(), indent=2), encoding="utf-8")
@@ -69,6 +79,7 @@ def test_task_graph_emitter_structure_validity():
     assert graph["request"]["request_id"] == request.request_id
     assert graph["dependency_map"]["REQ_20260315_0001_GRAPH"] == ["REQ_20260315_0001_INTAKE"]
     assert graph["dependency_map"]["REQ_20260315_0001_REPORT"] == ["REQ_20260315_0001_GRAPH"]
+    assert graph["tasks"][1]["inputs"]["phase_id"] == "PHASE_3"
     assert graph["tasks"][1]["policy_level"] == "architecture_only"
     assert graph["tasks"][2]["validation_rules"][0]["rule_id"] == "VR_REPORT_ORDER_001"
 

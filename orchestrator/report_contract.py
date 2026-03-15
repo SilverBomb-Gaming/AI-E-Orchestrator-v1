@@ -14,18 +14,18 @@ def format_operator_report(
     recommendations: Iterable[str],
     timestamp: str,
 ) -> str:
-    sections = [
-        ("SUMMARY", _normalize_paragraph(summary)),
-        ("FACTS", _normalize_bullets(facts)),
-        ("ASSUMPTIONS", _normalize_bullets(assumptions)),
-        ("RECOMMENDATIONS", _normalize_bullets(recommendations)),
-        ("TIMESTAMP", _normalize_paragraph(timestamp)),
-    ]
+    section_bodies = {
+        "SUMMARY": _normalize_paragraph(summary),
+        "FACTS": _normalize_bullets(facts),
+        "ASSUMPTIONS": _normalize_bullets(assumptions),
+        "RECOMMENDATIONS": _normalize_bullets(recommendations),
+        "TIMESTAMP": _normalize_paragraph(timestamp),
+    }
     blocks: List[str] = []
-    for title, body in sections:
+    for title in required_response_sections():
         blocks.append(title)
         blocks.append("")
-        blocks.append(body)
+        blocks.append(section_bodies[title])
         blocks.append("")
     return "\n".join(blocks).rstrip() + "\n"
 

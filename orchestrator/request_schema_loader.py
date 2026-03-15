@@ -17,6 +17,14 @@ _REQUIRED_FIELDS = {
     "created_at": str,
 }
 
+_OPTIONAL_FIELDS = {
+    "intent",
+    "clarification_needed",
+    "context",
+    "constraints",
+    "requested_artifacts",
+}
+
 
 @dataclass(frozen=True)
 class RequestSchemaError:
@@ -46,6 +54,7 @@ def load_request_file(path: Path) -> ConversationalRequest:
 def validate_request_payload(payload: Mapping[str, Any]) -> ConversationalRequest:
     errors: list[RequestSchemaError] = []
     normalized = dict(payload)
+    _validate_unknown_fields(normalized, errors)
     for field_name, expected_type in _REQUIRED_FIELDS.items():
         value = normalized.get(field_name)
         if value is None:
@@ -74,11 +83,23 @@ def validate_request_payload(payload: Mapping[str, Any]) -> ConversationalReques
         operator_prompt=str(normalized["operator_prompt"]).strip(),
         created_at=str(normalized["created_at"]).strip(),
         intent=str(normalized.get("intent") or "unspecified").strip() or "unspecified",
-        clarification_needed=bool(normalized.get("clarification_needed", False)),
+        clarification_needed=normalized.get("clarification_needed", False),
         context=dict(normalized.get("context") or {}),
         constraints=[str(item).strip() for item in normalized.get("constraints") or []],
         requested_artifacts=[str(item).strip() for item in normalized.get("requested_artifacts") or []],
     )
+
+
+def _validate_unknown_fields(payload: Mapping[str, Any], errors: list[RequestSchemaError]) -> None:
+    allowed_fields = set(_REQUIRED_FIELDS) | _OPTIONAL_FIELDS
+    for field_name in sorted(payload):
+        if field_name not in allowed_fields:
+            errors.append(
+                RequestSchemaError(
+                    field=field_name,
+                    message="is not supported by the current request schema; place extra metadata under context",
+                )
+            )
 
 
 def _validate_iso8601_utc(value: Any, errors: list[RequestSchemaError]) -> None:

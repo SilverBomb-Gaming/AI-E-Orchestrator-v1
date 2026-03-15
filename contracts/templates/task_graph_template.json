@@ -5,26 +5,48 @@
     "channel": "cli_chat",
     "operator_prompt": "Create a zombie test arena with two enemies and a pistol.",
     "created_at": "2026-03-15T00:00:00Z",
-    "intent": "create_sandbox"
+    "intent": "create_sandbox",
+    "clarification_needed": false,
+    "context": {
+      "project": "BABYLON VER 2",
+      "level_id": "LEVEL_0001",
+      "scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
+    },
+    "constraints": [
+      "Do not create new Python environments.",
+      "Do not modify gameplay systems.",
+      "Do not bypass policy or validation layers."
+    ],
+    "requested_artifacts": [
+      "summary.md",
+      "gate_report.json",
+      "report_last_run.md"
+    ]
   },
   "tasks": [
     {
-      "task_id": "TASK_001",
+      "task_id": "REQ_20260315_0001_INTAKE",
       "request_id": "REQ_20260315_0001",
-      "task_type": "plan_generation",
-      "objective": "Interpret the request and build a bounded execution plan.",
+      "task_type": "request_analysis",
+      "objective": "Normalize and analyze operator request for create_sandbox.",
       "dependencies": [],
       "inputs": {
-        "scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
+        "channel": "cli_chat",
+        "request_type": "create_sandbox",
+        "source_prompt": "Create a zombie test arena with two enemies and a pistol."
       },
       "expected_outputs": [
-        "task_graph.json",
-        "planning_summary.md"
+        "request_analysis.json",
+        "planning_notes.md"
       ],
       "validation_rules": [
         {
-          "rule_id": "VR_PLAN_001",
-          "description": "Plan must remain inside approved project scope."
+          "rule_id": "VR_REQUEST_SCOPE_001",
+          "description": "Planned work must remain inside approved AI-E architecture scope.",
+          "evidence": [
+            "request.constraints",
+            "request.context"
+          ]
         }
       ],
       "retry_policy": {
@@ -32,33 +54,39 @@
         "retry_on": [],
         "operator_approval_required": false
       },
-      "policy_level": "standard",
-      "risk_level": "medium",
+      "policy_level": "architecture_only",
+      "risk_level": "low",
       "assigned_agent": "PlannerAgent",
-      "status": "pending"
+      "status": "planned"
     },
     {
-      "task_id": "TASK_002",
+      "task_id": "REQ_20260315_0001_GRAPH",
       "request_id": "REQ_20260315_0001",
-      "task_type": "validation",
-      "objective": "Validate outputs and generate an operator report.",
+      "task_type": "task_graph_emission",
+      "objective": "Emit a deterministic task-graph contract from the validated conversational request.",
       "dependencies": [
-        "TASK_001"
+        "REQ_20260315_0001_INTAKE"
       ],
       "inputs": {
-        "required_logs": [
-          "policy_decisions",
-          "validation_results"
+        "request_id": "REQ_20260315_0001",
+        "phase_id": "PHASE_3",
+        "requested_artifacts": [
+          "summary.md",
+          "gate_report.json",
+          "report_last_run.md"
         ]
       },
       "expected_outputs": [
-        "summary.md",
-        "gate_report.json"
+        "task_graph.json"
       ],
       "validation_rules": [
         {
-          "rule_id": "VR_REPORT_001",
-          "description": "Report must include facts, assumptions, and recommendations."
+          "rule_id": "VR_GRAPH_SHAPE_001",
+          "description": "Task graph must preserve parent request linkage and explicit dependencies.",
+          "evidence": [
+            "task_graph.request.request_id",
+            "task_graph.dependency_map"
+          ]
         }
       ],
       "retry_policy": {
@@ -66,10 +94,64 @@
         "retry_on": [],
         "operator_approval_required": false
       },
-      "policy_level": "strict",
-      "risk_level": "medium",
+      "policy_level": "architecture_only",
+      "risk_level": "low",
+      "assigned_agent": "PlannerAgent",
+      "status": "planned"
+    },
+    {
+      "task_id": "REQ_20260315_0001_REPORT",
+      "request_id": "REQ_20260315_0001",
+      "task_type": "report_contract_preparation",
+      "objective": "Prepare operator-facing reporting placeholders for the planned work.",
+      "dependencies": [
+        "REQ_20260315_0001_GRAPH"
+      ],
+      "inputs": {
+        "required_sections": [
+          "SUMMARY",
+          "FACTS",
+          "ASSUMPTIONS",
+          "RECOMMENDATIONS",
+          "TIMESTAMP"
+        ],
+        "requested_artifacts": [
+          "summary.md",
+          "gate_report.json",
+          "report_last_run.md"
+        ]
+      },
+      "expected_outputs": [
+        "report_contract.json",
+        "report_outline.md"
+      ],
+      "validation_rules": [
+        {
+          "rule_id": "VR_REPORT_ORDER_001",
+          "description": "Operator-facing reports must preserve canonical section order.",
+          "evidence": [
+            "report_contract.required_sections"
+          ]
+        }
+      ],
+      "retry_policy": {
+        "max_attempts": 1,
+        "retry_on": [],
+        "operator_approval_required": false
+      },
+      "policy_level": "report_contract",
+      "risk_level": "low",
       "assigned_agent": "ReportAgent",
-      "status": "pending"
+      "status": "planned"
     }
-  ]
+  ],
+  "dependency_map": {
+    "REQ_20260315_0001_INTAKE": [],
+    "REQ_20260315_0001_GRAPH": [
+      "REQ_20260315_0001_INTAKE"
+    ],
+    "REQ_20260315_0001_REPORT": [
+      "REQ_20260315_0001_GRAPH"
+    ]
+  }
 }
