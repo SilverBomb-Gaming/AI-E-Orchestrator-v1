@@ -1,0 +1,49 @@
+{
+  "post_decision_dispatch_request": {
+    "dispatch_id": "DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "decision_id": "DECISION_HANDOFF_SESSION_TASK_001",
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "session_id": "SESSION_TASK_001",
+    "closeout_id": "CLOSEOUT_SESSION_TASK_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "resolution_state": "resolved_archive",
+    "next_action": "archive_package",
+    "priority_level": "low",
+    "dispatch_requested_at": "2026-03-16T00:00:00Z"
+  },
+  "post_decision_dispatch_record": {
+    "dispatch_id": "DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "dispatch_state": "dispatch_archive",
+    "dispatch_target": "archive_store_placeholder",
+    "dispatch_reason": "Resolved archive authorization should be packaged for archival handling.",
+    "retry_authorized": false,
+    "archive_authorized": true,
+    "next_phase_authorized": false,
+    "escalation_required": false,
+    "deferred": false,
+    "notes": "Archive dispatch remains contract-only until a future approved runtime phase exists."
+  },
+  "post_decision_dispatch_verdict": {
+    "dispatch_id": "DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "resolution_state": "resolved_archive",
+    "dispatch_state": "dispatch_archive",
+    "proceed_allowed": true,
+    "blocked": false,
+    "blocked_reason": "",
+    "requires_operator_review": false,
+    "archival_ready": true,
+    "retry_ready": false,
+    "next_phase_ready": false
+  },
+  "dispatch_transitions": {
+    "resolved_retry": "dispatch_retry",
+    "resolved_archive": "dispatch_archive",
+    "resolved_next_phase": "dispatch_next_phase",
+    "resolved_defer": "dispatch_defer",
+    "resolved_deny": "dispatch_deny",
+    "resolved_escalate": "dispatch_escalate",
+    "resolution_blocked": "dispatch_blocked"
+  }
+}
