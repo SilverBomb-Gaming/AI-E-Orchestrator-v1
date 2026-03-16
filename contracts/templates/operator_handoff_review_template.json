@@ -1,0 +1,52 @@
+{
+  "operator_handoff_request": {
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "session_id": "SESSION_TASK_001",
+    "closeout_id": "CLOSEOUT_SESSION_TASK_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "final_outcome": "success",
+    "closeout_state": "closed_successfully",
+    "operator_attention_required": false,
+    "review_requested_at": "2026-03-16T00:00:00Z"
+  },
+  "operator_handoff_summary": {
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "summary_title": "Operator handoff review for TASK_001",
+    "summary_text": "Deterministic handoff packaging completed for operator review without any live handoff system or runtime integration.",
+    "key_facts": [
+      "Final outcome: success",
+      "Closeout state: closed_successfully",
+      "Retained artifacts: 1",
+      "Discarded artifacts: 0"
+    ],
+    "warnings": [],
+    "recommended_next_actions": [
+      "Archive the deterministic closeout package for morning review."
+    ],
+    "priority_level": "low",
+    "requires_operator_decision": false
+  },
+  "operator_handoff_review_targets": {
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "reviewable_items": [
+      "closeout:CLOSEOUT_SESSION_TASK_001",
+      "session:SESSION_TASK_001"
+    ],
+    "approval_items": [
+      "archive:HANDOFF_SESSION_TASK_001"
+    ],
+    "blocked_items": [],
+    "retry_candidates": [],
+    "archival_candidates": [
+      "ART_TASK_001_CLOSEOUT_001"
+    ]
+  },
+  "priority_levels": [
+    "low",
+    "medium",
+    "high",
+    "urgent"
+  ]
+}
