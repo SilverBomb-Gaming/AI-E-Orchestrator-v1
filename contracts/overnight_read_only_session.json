@@ -1,0 +1,19 @@
+{
+  "contract_type": "read_only_capability",
+  "session_type": "overnight_validation",
+  "allowed_roots": [
+    "E:\\AI projects 2025\\AI-E Orchestrator v1\\orchestrator"
+  ],
+  "allowed_extensions": [
+    ".py"
+  ],
+  "max_file_count": 2,
+  "max_total_bytes": 16384,
+  "recursive_allowed": false,
+  "hidden_files_allowed": false,
+  "scenarios": [
+    "read_completed",
+    "read_partial",
+    "read_failed_retryable"
+  ]
+}

@@ -99,3 +99,48 @@ def test_overnight_read_only_rehearsal_terminal_variant_writes_deterministic_out
 
     assert "variant terminal_failure" in operator_report
     assert "Ready for live overnight production: False" in operator_report
+
+
+def test_overnight_read_only_rehearsal_mixed_variant_writes_deterministic_outputs(tmp_path):
+    artifacts = run_overnight_read_only_rehearsal(
+        tmp_path / "aie_overnight_read_only_rehearsal_mixed",
+        variant="mixed_outcome",
+    )
+
+    rehearsal_request = json.loads(artifacts.rehearsal_request_path.read_text(encoding="utf-8"))["rehearsal_request"]
+    execution_summary = json.loads(artifacts.rehearsal_execution_summary_path.read_text(encoding="utf-8"))[
+        "rehearsal_execution_summary"
+    ]
+    validator_summary = json.loads(artifacts.rehearsal_validator_summary_path.read_text(encoding="utf-8"))[
+        "rehearsal_validator_summary"
+    ]
+    handoff_summary = json.loads(artifacts.rehearsal_handoff_summary_path.read_text(encoding="utf-8"))[
+        "rehearsal_handoff_summary"
+    ]
+    operator_report = artifacts.operator_report_path.read_text(encoding="utf-8")
+
+    assert rehearsal_request["variant"] == "mixed_outcome"
+    assert rehearsal_request["scenarios"] == [
+        {"step_id": "REHEARSAL_STEP_001", "scenario": "read_completed", "purpose": "baseline_success_probe"},
+        {"step_id": "REHEARSAL_STEP_002", "scenario": "read_partial", "purpose": "bounded_partial_probe"},
+        {"step_id": "REHEARSAL_STEP_003", "scenario": "read_failed_retryable", "purpose": "bounded_failure_probe"},
+    ]
+
+    assert execution_summary["variant"] == "mixed_outcome"
+    assert execution_summary["success_count"] == 1
+    assert execution_summary["partial_count"] == 1
+    assert execution_summary["failed_count"] == 1
+    assert execution_summary["results"][1]["validation_class"] == "partial_success"
+    assert execution_summary["results"][2]["validation_class"] == "retryable_failure"
+
+    assert validator_summary["validation_classes_exercised"] == ["partial_success", "passed", "retryable_failure"]
+    assert validator_summary["retry_recommended_for"] == ["read_partial", "read_failed_retryable"]
+
+    assert handoff_summary["partial"] == ["read_partial"]
+    assert handoff_summary["failed"] == ["read_failed_retryable"]
+    assert handoff_summary["operator_attention_level"] == "high"
+    assert handoff_summary["overall_overnight_stability"] == "stable_with_partial_and_retryable_failure"
+    assert handoff_summary["safe_next_steps"][0].startswith("Review the partial outcome")
+
+    assert "variant mixed_outcome" in operator_report
+    assert "Overall overnight stability: stable_with_partial_and_retryable_failure" in operator_report

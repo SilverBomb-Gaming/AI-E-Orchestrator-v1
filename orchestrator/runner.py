@@ -24,6 +24,7 @@ from .registry import AgentProfile, AgentRegistry
 from .report import ReportEmitter
 from .repeatability import compare_entity_runs, write_repeatability_report
 from .run_report import RunReportContext, write_run_report
+from .runner_read_only_bridge import execute_read_only_session
 from .utils import append_live_event, ensure_dir, read_json, safe_write_text, slugify, utc_timestamp, write_json
 from .workspace import WorkspaceContext, WorkspaceManager
 
@@ -509,6 +510,24 @@ class TaskRunner:
                 or contract.metadata.get("contractType")
                 or "standard"
             ).lower()
+            if task_type_label == "read_only_capability":
+                task_result = self._execute_read_only_capability_task(
+                    task=task,
+                    queue_manager=queue_manager,
+                    contract=contract,
+                    contract_path=contract_path,
+                    timestamp=timestamp,
+                    run_id=run_id,
+                    run_dir=run_dir,
+                    cycle_id=cycle_id,
+                )
+                gate_report = task_result.gate_report
+                command_results = task_result.command_results
+                result_status = task_result.status
+                queue_status = self._queue_status_for_overall(result_status)
+                last_error = "" if queue_status == "completed" else self._summarize_gate_failure(gate_report)
+                last_run_status_value = result_status
+                return task_result
             expects_entity_artifacts = is_entity_generation_contract(contract)
             target_value = (
                 task.get("target_repo")
@@ -959,6 +978,131 @@ class TaskRunner:
             current_result=task_result,
         )
         return task_result
+
+    def _execute_read_only_capability_task(
+        self,
+        *,
+        task: Dict[str, Any],
+        queue_manager: QueueManager,
+        contract: Contract,
+        contract_path: Path,
+        timestamp: str,
+        run_id: str,
+        run_dir: Path,
+        cycle_id: Optional[str],
+    ) -> TaskResult:
+        task_id = str(task.get("id", "UNKNOWN"))
+        bridge_request = {
+            "task_id": task_id,
+            "run_id": run_id,
+            "session_id": run_id,
+            "contract_path": str(contract_path),
+            "scenario": (
+                contract.metadata.get("read_only_scenario")
+                or contract.metadata.get("readOnlyScenario")
+                or contract.metadata.get("scenario")
+                or "read_completed"
+            ),
+            "metadata": contract.metadata,
+        }
+        bridge_result = execute_read_only_session(
+            bridge_request,
+            output_dir=self.config.runs_dir / "aie_live_read_only_session",
+        )
+        retention_info = self._apply_retention(run_id)
+        validation_sources = ["read_only_adapter", "validator_engine", "runner_read_only_bridge"]
+        command_results: List[Dict[str, Any]] = []
+        gate_report = bridge_result.gate_report
+        overall = gate_report["overall_status"].upper()
+        summary_text = bridge_result.operator_report_text
+
+        shutil.copy2(contract_path, run_dir / "contract.md")
+        session_artifact_dir = run_dir / "artifacts" / "live_read_only_session"
+        if session_artifact_dir.exists():
+            shutil.rmtree(session_artifact_dir)
+        shutil.copytree(bridge_result.output_dir, session_artifact_dir)
+
+        self._emit_command_results(None, run_dir, command_results)
+        self._emit_gate_report(None, run_dir, gate_report)
+        self._emit_summary(None, run_dir, summary_text)
+
+        run_meta = {
+            "task_id": task_id,
+            "run_id": run_id,
+            "timestamp": timestamp,
+            "contract_path": str(contract_path),
+            "workspace_path": "",
+            "run_dir": str(run_dir),
+            "agents": [],
+            "gate_overall": gate_report["overall_status"],
+            "retention": retention_info,
+            "policy": gate_report.get("policy", {}),
+            "diff_report": {
+                "path": "",
+                "regression_verdict": None,
+                "no_change_detected": False,
+                "regression_config": {"no_change_verdict": "ALLOW"},
+            },
+            "playmode": {},
+            "baseline": self._baseline_metadata(None, False),
+            "validation_sources": validation_sources,
+            "live_read_only_session": {
+                "output_dir": str(bridge_result.output_dir),
+                "session_bundle_dir": str(bridge_result.session_bundle_dir),
+                "response_state": bridge_result.response_state,
+                "validation_class": bridge_result.validation_class,
+                "summary": bridge_result.summary_payload,
+            },
+        }
+        write_json(run_dir / "run_meta.json", run_meta)
+
+        queue_status = self._queue_status_for_overall(overall)
+        last_error = "" if queue_status == "completed" else self._summarize_gate_failure(gate_report)
+        queue_manager.update_task(
+            task_id,
+            {
+                "status": queue_status,
+                "last_run": timestamp,
+                "last_run_status": overall,
+                "last_run_dir": str(run_dir),
+                "last_run_id": run_id,
+                "current_run_id": None,
+                "last_error": last_error,
+            },
+        )
+        self._emit_live_event(
+            cycle_id,
+            "gate_decision",
+            f"Read-only runner bridge result {overall}",
+            task_id=task_id,
+            run_id=run_id,
+            gate=gate_report["overall_status"],
+            validation_class=bridge_result.validation_class,
+            response_state=bridge_result.response_state,
+        )
+        self._safe_emit_run_report(
+            run_dir=run_dir,
+            run_id=run_id,
+            task_id=task_id,
+            contract_path=str(contract_path),
+            task_type="read_only_capability",
+            final_status=bridge_result.response_state,
+            final_detail=(
+                f"Validation class {bridge_result.validation_class}; gate {gate_report['overall_status']}."
+            ),
+            command_results=command_results,
+            validation_sources=validation_sources,
+        )
+        return TaskResult(
+            task_id=task_id,
+            run_id=run_id,
+            run_dir=run_dir,
+            gate_report=gate_report,
+            command_results=command_results,
+            status=overall,
+            no_change_detected=False,
+            regression_verdict=None,
+        )
 
     def _safe_emit_run_report(
         self,
