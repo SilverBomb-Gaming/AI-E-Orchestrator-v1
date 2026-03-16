@@ -1,0 +1,53 @@
+{
+  "operator_decision_request": {
+    "decision_id": "DECISION_HANDOFF_SESSION_TASK_001",
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "session_id": "SESSION_TASK_001",
+    "closeout_id": "CLOSEOUT_SESSION_TASK_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "priority_level": "low",
+    "operator_attention_required": false,
+    "reviewable_items": [
+      "closeout:CLOSEOUT_SESSION_TASK_001",
+      "session:SESSION_TASK_001"
+    ],
+    "approval_items": [
+      "archive:HANDOFF_SESSION_TASK_001"
+    ],
+    "blocked_items": [],
+    "retry_candidates": [],
+    "archival_candidates": [
+      "ART_TASK_001_CLOSEOUT_001"
+    ],
+    "decision_requested_at": "2026-03-16T00:00:00Z"
+  },
+  "operator_decision_response": {
+    "decision_id": "DECISION_HANDOFF_SESSION_TASK_001",
+    "operator_decision": "archive_only",
+    "decided_by": "operator_placeholder",
+    "decided_at": "2026-03-16T00:00:00Z",
+    "notes": "Deterministic dry-run operator decision for architecture-only validation."
+  },
+  "operator_decision_resolution": {
+    "decision_id": "DECISION_HANDOFF_SESSION_TASK_001",
+    "resolution_state": "resolved_archive",
+    "next_action": "archive_package",
+    "retry_authorized": false,
+    "archival_authorized": true,
+    "escalation_required": false,
+    "blocked": false,
+    "blocked_reason": "",
+    "summary": "Operator approved archival only."
+  },
+  "decision_transitions": {
+    "review_package+approve_retry": "resolved_retry",
+    "review_package+approve_next_phase": "resolved_next_phase",
+    "review_package+archive_only": "resolved_archive",
+    "review_package+defer": "resolved_defer",
+    "review_package+deny": "resolved_deny",
+    "review_package+escalate": "resolved_escalate",
+    "blocked_review_package": "resolution_blocked"
+  }
+}
