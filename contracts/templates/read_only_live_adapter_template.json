@@ -1,0 +1,73 @@
+{
+  "read_only_request": {
+    "adapter_request_id": "READ_ONLY_REQ_001",
+    "session_id": "SESSION_TASK_001",
+    "permit_id": "PERMIT_001",
+    "authorization_id": "AUTH_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "adapter_id": "local_read_only_adapter",
+    "target_paths": [
+      "orchestrator/report_contract.py",
+      "contracts/templates/post_dispatch_audit_template.json"
+    ],
+    "read_scope": {
+      "allowed_roots": [
+        "orchestrator",
+        "contracts/templates"
+      ],
+      "allowed_extensions": [
+        ".py",
+        ".json"
+      ],
+      "max_file_count": 2,
+      "max_total_bytes": 16384,
+      "recursive_allowed": false,
+      "hidden_files_allowed": false
+    },
+    "dry_run": false,
+    "requested_at": "2026-03-16T00:00:00Z"
+  },
+  "read_only_response": {
+    "adapter_request_id": "READ_ONLY_REQ_001",
+    "adapter_id": "local_read_only_adapter",
+    "response_state": "read_completed",
+    "read_completed": true,
+    "inspected_paths": [
+      "orchestrator/report_contract.py",
+      "contracts/templates/post_dispatch_audit_template.json"
+    ],
+    "warnings": [],
+    "errors": [],
+    "artifacts_generated": [
+      "RO_ART_001",
+      "RO_ART_002"
+    ],
+    "completed_at": "2026-03-16T00:00:00Z"
+  },
+  "read_only_artifacts": [
+    {
+      "artifact_id": "RO_ART_001",
+      "artifact_type": "inspection_report",
+      "source_path": "orchestrator/report_contract.py",
+      "summary": "bytes=<bounded> sha256_16=<deterministic> excerpt=from __future__ import annotations",
+      "captured_at": "2026-03-16T00:00:00Z"
+    },
+    {
+      "artifact_id": "RO_ART_002",
+      "artifact_type": "inspection_report",
+      "source_path": "contracts/templates/post_dispatch_audit_template.json",
+      "summary": "bytes=<bounded> sha256_16=<deterministic> excerpt={ \"post_dispatch_audit_request\"",
+      "captured_at": "2026-03-16T00:00:00Z"
+    }
+  ],
+  "response_states": [
+    "read_requested",
+    "read_completed",
+    "read_blocked",
+    "read_denied",
+    "read_failed",
+    "read_partial"
+  ]
+}
