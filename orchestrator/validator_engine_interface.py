@@ -250,6 +250,31 @@ def evaluate_validation_result(
         )
         return record, verdict
 
+    if response_state == "read_failed":
+        validation_class, retry_recommended, notes, retry_reason = _classify_failed_read(warnings, errors)
+        record = ValidationRecordContract(
+            validation_id=validation_input.validation_id,
+            validation_state="validation_failed",
+            validation_class=validation_class,
+            passed=False,
+            partial=False,
+            retryable=retry_recommended,
+            blocked=False,
+            terminal=not retry_recommended,
+            summary="Read-only inspection failed during bounded validation.",
+            notes=notes,
+        )
+        verdict = ValidationVerdictContract(
+            validation_id=validation_input.validation_id,
+            validation_state="validation_failed",
+            retry_recommended=retry_recommended,
+            retry_reason=retry_reason,
+            operator_attention_required=True,
+            escalation_required=not retry_recommended,
+            finalized=True,
+        )
+        return record, verdict
+
     validation_class: ValidationClass = "retryable_failure" if errors else "terminal_failure"
     retry_recommended = bool(errors)
     retry_reason = "Read-only inspection failed and may be retried within the bounded scope." if errors else ""
@@ -275,6 +300,33 @@ def evaluate_validation_result(
         finalized=True,
     )
     return record, verdict
+
+
+def _classify_failed_read(
+    warnings: List[str],
+    errors: List[str],
+) -> tuple[ValidationClass, bool, str, str]:
+    failure_messages = list(errors) + list(warnings)
+    for message in failure_messages:
+        if message.startswith("RETRYABLE:"):
+            reason = message.removeprefix("RETRYABLE:").strip()
+            return (
+                "retryable_failure",
+                True,
+                f"Retryable bounded read failure: {reason}",
+                reason,
+            )
+        if message.startswith("TERMINAL:"):
+            reason = message.removeprefix("TERMINAL:").strip()
+            return (
+                "terminal_failure",
+                False,
+                f"Terminal bounded read failure: {reason}",
+                "",
+            )
+
+    fallback_reason = errors[0] if errors else "Read-only inspection failed without a classified reason."
+    return "terminal_failure", False, f"Terminal bounded read failure: {fallback_reason}", ""
 
 
 class ValidatorEngineInterface(Protocol):

@@ -4,7 +4,6 @@ import json
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 from orchestrator.report_contract import format_operator_report, validate_operator_report
 from orchestrator.utils import safe_write_text, write_json
@@ -14,6 +13,7 @@ from read_only_live_adapter_dry_run import ReadOnlyScenario, run_read_only_live_
 
 SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_read_only_validation_test"
+DEFAULT_FAILED_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_read_only_failed_test"
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ def run_validator_engine_dry_run(
     output_dir: Path | None = None,
     scenario: ReadOnlyScenario = "read_completed",
 ) -> ValidatorEngineArtifacts:
-    destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    destination = Path(output_dir) if output_dir else _default_output_dir_for_scenario(scenario)
     with tempfile.TemporaryDirectory(prefix="aiev_") as temp_dir:
         adapter_artifacts = run_read_only_live_adapter_dry_run(Path(temp_dir) / "ro", scenario=scenario)
         request_payload = json.loads(adapter_artifacts.read_only_request_path.read_text(encoding="utf-8"))
@@ -57,6 +57,7 @@ def run_validator_engine_dry_run(
         validated_at=SIMULATION_TIMESTAMP,
     )
     validation_record, validation_verdict = evaluate_validation_result(validation_input)
+    primary_reason = response_raw["errors"][0] if response_raw["errors"] else ""
 
     report_text = format_operator_report(
         summary=(
@@ -70,6 +71,7 @@ def run_validator_engine_dry_run(
             f"Validation class: {validation_record.validation_class}",
             f"Retry recommended: {validation_verdict.retry_recommended}",
             f"Artifacts generated: {len(artifacts_raw)}",
+            f"Primary reason: {primary_reason or 'none'}",
         ],
         assumptions=[
             "The validator engine remains classification-only even when consuming real bounded read-only adapter outputs.",
@@ -122,3 +124,11 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _default_output_dir_for_scenario(scenario: ReadOnlyScenario) -> Path:
+    if scenario == "read_failed_retryable":
+        return DEFAULT_FAILED_OUTPUT_DIR / "retryable_failure"
+    if scenario == "read_failed_terminal":
+        return DEFAULT_FAILED_OUTPUT_DIR / "terminal_failure"
+    return DEFAULT_OUTPUT_DIR

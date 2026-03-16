@@ -103,13 +103,60 @@ def test_read_only_dry_run_denied_scenario_is_deterministic(tmp_path):
     assert artifact_registry["read_only_artifacts"] == []
 
 
+def test_read_only_dry_run_retryable_failed_scenario_is_deterministic(tmp_path):
+    artifacts = run_read_only_live_adapter_dry_run(
+        tmp_path / "aie_read_only_failed_test" / "retryable_failure",
+        scenario="read_failed_retryable",
+    )
+
+    request_payload = json.loads(artifacts.read_only_request_path.read_text(encoding="utf-8"))
+    response_payload = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    artifact_registry = json.loads(artifacts.read_only_artifact_registry_path.read_text(encoding="utf-8"))
+
+    assert request_payload["read_only_request"]["target_paths"] == [
+        str((ROOT / "orchestrator" / "report_contract.py").resolve())
+    ]
+    assert response_payload["read_only_response"]["response_state"] == "read_failed"
+    assert response_payload["read_only_response"]["errors"] == [
+        "RETRYABLE: Simulated transient bounded access issue on an approved target; retry within the same read-only scope may succeed."
+    ]
+    assert response_payload["read_only_response"]["warnings"] == [
+        "Retryable failure remained local-only and did not read any target bytes."
+    ]
+    assert response_payload["read_only_response"]["artifacts_generated"] == ["RO_ART_FAIL_001"]
+    assert artifact_registry["read_only_artifacts"][0]["artifact_type"] == "failure_diagnostic"
+    assert "retryable_failure" in artifact_registry["read_only_artifacts"][0]["summary"]
+
+
+def test_read_only_dry_run_terminal_failed_scenario_is_deterministic(tmp_path):
+    artifacts = run_read_only_live_adapter_dry_run(
+        tmp_path / "aie_read_only_failed_test" / "terminal_failure",
+        scenario="read_failed_terminal",
+    )
+
+    response_payload = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    artifact_registry = json.loads(artifacts.read_only_artifact_registry_path.read_text(encoding="utf-8"))
+
+    assert response_payload["read_only_response"]["response_state"] == "read_failed"
+    assert response_payload["read_only_response"]["errors"] == [
+        "TERMINAL: Simulated structurally invalid bounded read request; retrying the same request cannot succeed within current policy."
+    ]
+    assert response_payload["read_only_response"]["warnings"] == []
+    assert response_payload["read_only_response"]["artifacts_generated"] == ["RO_ART_FAIL_001"]
+    assert "terminal_failure" in artifact_registry["read_only_artifacts"][0]["summary"]
+
+
 def test_build_read_only_request_selects_deterministic_scenarios():
     partial_request = build_read_only_request("read_partial")
     denied_request = build_read_only_request("read_denied")
+    retryable_failed_request = build_read_only_request("read_failed_retryable")
+    terminal_failed_request = build_read_only_request("read_failed_terminal")
 
     assert partial_request.target_paths[0].endswith("orchestrator\\report_contract.py")
     assert partial_request.target_paths[1].endswith("README.md")
     assert denied_request.target_paths == [str((ROOT / "README.md").resolve())]
+    assert retryable_failed_request.target_paths == [str((ROOT / "orchestrator" / "report_contract.py").resolve())]
+    assert terminal_failed_request.target_paths == [str((ROOT / "orchestrator" / "report_contract.py").resolve())]
 
 
 def test_read_only_execution_blocks_if_scope_is_exceeded():

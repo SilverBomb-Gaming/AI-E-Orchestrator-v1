@@ -59,9 +59,43 @@ def test_validator_engine_classification_is_deterministic():
         errors=["Target is outside the approved roots"],
         validated_at="2026-03-16T00:00:00Z",
     )
+    retryable_failed_input = ValidationInputContract(
+        validation_id="VALIDATION_FAILED_RETRYABLE",
+        session_id="SESSION_001",
+        request_id="REQ_001",
+        execution_id="EXEC_001",
+        task_id="TASK_001",
+        adapter_id="local_read_only_adapter",
+        response_state="read_failed",
+        inspected_paths=[],
+        artifacts_generated=["RO_ART_FAIL_001"],
+        warnings=["Retryable failure remained local-only and did not read any target bytes."],
+        errors=[
+            "RETRYABLE: Simulated transient bounded access issue on an approved target; retry within the same read-only scope may succeed."
+        ],
+        validated_at="2026-03-16T00:00:00Z",
+    )
+    terminal_failed_input = ValidationInputContract(
+        validation_id="VALIDATION_FAILED_TERMINAL",
+        session_id="SESSION_001",
+        request_id="REQ_001",
+        execution_id="EXEC_001",
+        task_id="TASK_001",
+        adapter_id="local_read_only_adapter",
+        response_state="read_failed",
+        inspected_paths=[],
+        artifacts_generated=["RO_ART_FAIL_001"],
+        warnings=[],
+        errors=[
+            "TERMINAL: Simulated structurally invalid bounded read request; retrying the same request cannot succeed within current policy."
+        ],
+        validated_at="2026-03-16T00:00:00Z",
+    )
 
     partial_record, partial_verdict = evaluate_validation_result(partial_input)
     denied_record, denied_verdict = evaluate_validation_result(denied_input)
+    retryable_record, retryable_verdict = evaluate_validation_result(retryable_failed_input)
+    terminal_record, terminal_verdict = evaluate_validation_result(terminal_failed_input)
 
     assert partial_record.validation_class == "partial_success"
     assert partial_verdict.retry_recommended is True
@@ -69,7 +103,19 @@ def test_validator_engine_classification_is_deterministic():
     assert denied_record.validation_state == "validation_blocked"
     assert denied_verdict.retry_recommended is False
     assert denied_verdict.operator_attention_required is True
-    assert "blocked" in validation_classes()
+    assert retryable_record.validation_class == "retryable_failure"
+    assert retryable_verdict.retry_recommended is True
+    assert terminal_record.validation_class == "terminal_failure"
+    assert terminal_verdict.retry_recommended is False
+    required_classes = {
+        "passed",
+        "passed_with_warnings",
+        "partial_success",
+        "blocked",
+        "retryable_failure",
+        "terminal_failure",
+    }
+    assert required_classes.issubset(set(validation_classes()))
 
 
 def test_validator_engine_dry_run_writes_deterministic_outputs(tmp_path):
@@ -125,4 +171,36 @@ def test_validator_engine_dry_run_denied_scenario_is_deterministic(tmp_path):
     assert validator_input["validator_input"]["response_state"] == "read_denied"
     assert validator_record["validator_record"]["validation_class"] == "blocked"
     assert validator_record["validator_record"]["validation_state"] == "validation_blocked"
+    assert validator_verdict["validator_verdict"]["retry_recommended"] is False
+
+
+def test_validator_engine_dry_run_retryable_failed_scenario_is_deterministic(tmp_path):
+    artifacts = run_validator_engine_dry_run(
+        tmp_path / "aie_read_only_failed_test" / "retryable_failure",
+        scenario="read_failed_retryable",
+    )
+
+    read_only_response = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    validator_record = json.loads(artifacts.validator_record_path.read_text(encoding="utf-8"))
+    validator_verdict = json.loads(artifacts.validator_verdict_path.read_text(encoding="utf-8"))
+
+    assert read_only_response["read_only_response"]["response_state"] == "read_failed"
+    assert validator_record["validator_record"]["validation_class"] == "retryable_failure"
+    assert validator_record["validator_record"]["notes"].startswith("Retryable bounded read failure:")
+    assert validator_verdict["validator_verdict"]["retry_recommended"] is True
+
+
+def test_validator_engine_dry_run_terminal_failed_scenario_is_deterministic(tmp_path):
+    artifacts = run_validator_engine_dry_run(
+        tmp_path / "aie_read_only_failed_test" / "terminal_failure",
+        scenario="read_failed_terminal",
+    )
+
+    read_only_response = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    validator_record = json.loads(artifacts.validator_record_path.read_text(encoding="utf-8"))
+    validator_verdict = json.loads(artifacts.validator_verdict_path.read_text(encoding="utf-8"))
+
+    assert read_only_response["read_only_response"]["response_state"] == "read_failed"
+    assert validator_record["validator_record"]["validation_class"] == "terminal_failure"
+    assert validator_record["validator_record"]["notes"].startswith("Terminal bounded read failure:")
     assert validator_verdict["validator_verdict"]["retry_recommended"] is False

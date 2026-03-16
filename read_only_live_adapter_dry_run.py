@@ -19,11 +19,19 @@ from orchestrator.utils import safe_write_text, write_json
 SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "runs" / "aie_read_only_adapter_test"
+DEFAULT_FAILED_OUTPUT_DIR = REPO_ROOT / "runs" / "aie_read_only_failed_test"
 APPROVED_TARGETS = [
     REPO_ROOT / "orchestrator" / "report_contract.py",
     REPO_ROOT / "orchestrator" / "utils.py",
 ]
-ReadOnlyScenario = Literal["read_completed", "read_partial", "read_denied"]
+ReadOnlyScenario = Literal[
+    "read_completed",
+    "read_partial",
+    "read_denied",
+    "read_failed_retryable",
+    "read_failed_terminal",
+]
+FailureMode = Literal["retryable_failure", "terminal_failure"]
 
 
 @dataclass(frozen=True)
@@ -51,13 +59,14 @@ def default_read_scope() -> ReadScopeContract:
 def build_read_only_request(scenario: ReadOnlyScenario = "read_completed") -> ReadOnlyAdapterRequestContract:
     scope = default_read_scope()
     target_paths = _scenario_target_paths(scenario)
+    scenario_token = scenario.upper()
     return ReadOnlyAdapterRequestContract(
-        adapter_request_id=f"READ_ONLY_REQ_{scenario.upper()}",
+        adapter_request_id=f"READ_ONLY_REQ_{scenario_token}",
         session_id="SESSION_TASK_001",
         permit_id="PERMIT_001",
         authorization_id="AUTH_001",
-        request_id="REQ_001",
-        execution_id="EXEC_001",
+        request_id=f"REQ_{scenario_token}",
+        execution_id=f"EXEC_{scenario_token}",
         task_id="TASK_001",
         adapter_id="local_read_only_adapter",
         target_paths=target_paths,
@@ -71,10 +80,11 @@ def run_read_only_live_adapter_dry_run(
     output_dir: Path | None = None,
     scenario: ReadOnlyScenario = "read_completed",
 ) -> ReadOnlyLiveAdapterArtifacts:
-    destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    destination = Path(output_dir) if output_dir else _default_output_dir_for_scenario(scenario)
     request = build_read_only_request(scenario)
 
     response, artifacts = execute_bounded_read_only_inspection(request)
+    primary_reason = response.errors[0] if response.errors else ""
 
     report_text = format_operator_report(
         summary=(
@@ -88,6 +98,7 @@ def run_read_only_live_adapter_dry_run(
             f"Inspected paths: {len(response.inspected_paths)}",
             f"Artifacts generated: {len(artifacts)}",
             f"Read scope max bytes: {request.read_scope.max_total_bytes}",
+            f"Primary reason: {primary_reason or 'none'}",
         ],
         assumptions=[
             "The first bounded live capability remains strictly read-only and limited to explicitly approved local paths.",
@@ -133,6 +144,10 @@ def execute_bounded_read_only_inspection(
     allowed_extensions = {suffix.lower() for suffix in scope.allowed_extensions}
     if len(request.target_paths) > scope.max_file_count:
         return _blocked_response(request, ["Requested file count exceeds bounded read scope."], [])
+
+    failure_mode = _simulated_failure_mode(request)
+    if failure_mode:
+        return _failed_response(request, failure_mode)
 
     resolved_targets = [Path(path).resolve() for path in request.target_paths]
     total_bytes = 0
@@ -249,6 +264,55 @@ def _denied_response(
     return response, []
 
 
+def _failed_response(
+    request: ReadOnlyAdapterRequestContract,
+    failure_mode: FailureMode,
+) -> tuple[ReadOnlyAdapterResponseContract, list[ReadOnlyArtifactContract]]:
+    target = Path(request.target_paths[0]).resolve() if request.target_paths else APPROVED_TARGETS[0].resolve()
+    source_path = target.relative_to(REPO_ROOT).as_posix() if _is_within_root(target, REPO_ROOT) else target.name
+
+    if failure_mode == "retryable_failure":
+        errors = [
+            "RETRYABLE: Simulated transient bounded access issue on an approved target; retry within the same read-only scope may succeed."
+        ]
+        warnings = ["Retryable failure remained local-only and did not read any target bytes."]
+        summary = (
+            "failure_mode=retryable_failure reason=simulated_transient_access_issue "
+            "target_bytes_read=false scope_change_required=false"
+        )
+    else:
+        errors = [
+            "TERMINAL: Simulated structurally invalid bounded read request; retrying the same request cannot succeed within current policy."
+        ]
+        warnings = []
+        summary = (
+            "failure_mode=terminal_failure reason=simulated_structural_request_invalidity "
+            "target_bytes_read=false scope_change_required=true"
+        )
+
+    artifacts = [
+        ReadOnlyArtifactContract(
+            artifact_id="RO_ART_FAIL_001",
+            artifact_type="failure_diagnostic",
+            source_path=source_path,
+            summary=summary,
+            captured_at=SIMULATION_TIMESTAMP,
+        )
+    ]
+    response = ReadOnlyAdapterResponseContract(
+        adapter_request_id=request.adapter_request_id,
+        adapter_id=request.adapter_id,
+        response_state="read_failed",
+        read_completed=False,
+        inspected_paths=[],
+        warnings=warnings,
+        errors=errors,
+        artifacts_generated=[artifact.artifact_id for artifact in artifacts],
+        completed_at=SIMULATION_TIMESTAMP,
+    )
+    return response, artifacts
+
+
 def _is_within_root(path: Path, root: Path) -> bool:
     try:
         path.relative_to(root)
@@ -265,7 +329,25 @@ def _scenario_target_paths(scenario: ReadOnlyScenario) -> list[str]:
         ]
     if scenario == "read_denied":
         return [str((REPO_ROOT / "README.md").resolve())]
+    if scenario in {"read_failed_retryable", "read_failed_terminal"}:
+        return [str(APPROVED_TARGETS[0].resolve())]
     return [str(path.resolve()) for path in APPROVED_TARGETS]
+
+
+def _simulated_failure_mode(request: ReadOnlyAdapterRequestContract) -> FailureMode | None:
+    if request.adapter_request_id.endswith("READ_FAILED_RETRYABLE"):
+        return "retryable_failure"
+    if request.adapter_request_id.endswith("READ_FAILED_TERMINAL"):
+        return "terminal_failure"
+    return None
+
+
+def _default_output_dir_for_scenario(scenario: ReadOnlyScenario) -> Path:
+    if scenario == "read_failed_retryable":
+        return DEFAULT_FAILED_OUTPUT_DIR / "retryable_failure"
+    if scenario == "read_failed_terminal":
+        return DEFAULT_FAILED_OUTPUT_DIR / "terminal_failure"
+    return DEFAULT_OUTPUT_DIR
 
 
 def _safe_excerpt(text: str, max_chars: int = 120) -> str:
