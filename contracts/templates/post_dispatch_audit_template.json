@@ -1,0 +1,51 @@
+{
+  "post_dispatch_audit_request": {
+    "audit_id": "AUDIT_DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "dispatch_id": "DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "decision_id": "DECISION_HANDOFF_SESSION_TASK_001",
+    "handoff_id": "HANDOFF_SESSION_TASK_001",
+    "session_id": "SESSION_TASK_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "dispatch_state": "dispatch_archive",
+    "dispatch_target": "archive_store_placeholder",
+    "priority_level": "low",
+    "audit_requested_at": "2026-03-16T00:00:00Z"
+  },
+  "post_dispatch_audit_record": {
+    "audit_id": "AUDIT_DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "audit_state": "audit_archived",
+    "audit_reason": "Archive dispatch packaged cleanly for archival review.",
+    "reviewed_dispatch_state": "dispatch_archive",
+    "reviewed_targets": [
+      "archive_store_placeholder",
+      "dispatch_archive"
+    ],
+    "archival_authorized": true,
+    "retry_followup_authorized": false,
+    "escalation_required": false,
+    "cleanup_required": true,
+    "notes": "Archive audit remains contract-only until a future approved runtime phase exists."
+  },
+  "post_dispatch_audit_verdict": {
+    "audit_id": "AUDIT_DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "dispatch_id": "DISPATCH_DECISION_HANDOFF_SESSION_TASK_001",
+    "audit_state": "audit_archived",
+    "proceed_allowed": true,
+    "blocked": false,
+    "blocked_reason": "",
+    "archive_ready": true,
+    "retry_ready": false,
+    "next_phase_ready": false,
+    "requires_operator_review": false
+  },
+  "audit_transitions": {
+    "dispatch_retry": ["audit_pending", "audit_passed"],
+    "dispatch_archive": ["audit_pending", "audit_archived"],
+    "dispatch_next_phase": ["audit_pending", "audit_passed"],
+    "dispatch_defer": ["audit_pending", "audit_warned"],
+    "dispatch_escalate": ["audit_pending", "audit_escalated"],
+    "dispatch_blocked": ["audit_blocked"]
+  }
+}
