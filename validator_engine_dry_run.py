@@ -4,11 +4,12 @@ import json
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from orchestrator.report_contract import format_operator_report, validate_operator_report
 from orchestrator.utils import safe_write_text, write_json
 from orchestrator.validator_engine_interface import ValidationInputContract, evaluate_validation_result
-from read_only_live_adapter_dry_run import run_read_only_live_adapter_dry_run
+from read_only_live_adapter_dry_run import ReadOnlyScenario, run_read_only_live_adapter_dry_run
 
 
 SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
@@ -26,10 +27,13 @@ class ValidatorEngineArtifacts:
     operator_report_path: Path
 
 
-def run_validator_engine_dry_run(output_dir: Path | None = None) -> ValidatorEngineArtifacts:
+def run_validator_engine_dry_run(
+    output_dir: Path | None = None,
+    scenario: ReadOnlyScenario = "read_completed",
+) -> ValidatorEngineArtifacts:
     destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     with tempfile.TemporaryDirectory(prefix="aiev_") as temp_dir:
-        adapter_artifacts = run_read_only_live_adapter_dry_run(Path(temp_dir) / "ro")
+        adapter_artifacts = run_read_only_live_adapter_dry_run(Path(temp_dir) / "ro", scenario=scenario)
         request_payload = json.loads(adapter_artifacts.read_only_request_path.read_text(encoding="utf-8"))
         response_payload = json.loads(adapter_artifacts.read_only_response_path.read_text(encoding="utf-8"))
         artifact_registry_payload = json.loads(adapter_artifacts.read_only_artifact_registry_path.read_text(encoding="utf-8"))
@@ -55,8 +59,12 @@ def run_validator_engine_dry_run(output_dir: Path | None = None) -> ValidatorEng
     validation_record, validation_verdict = evaluate_validation_result(validation_input)
 
     report_text = format_operator_report(
-        summary="Validator engine dry-run classified bounded read-only adapter output without any write-capable execution.",
+        summary=(
+            f"Validator engine dry-run classified bounded read-only adapter scenario {scenario} "
+            "without any write-capable execution."
+        ),
         facts=[
+            f"Scenario: {scenario}",
             f"Validation ID: {validation_input.validation_id}",
             f"Response state: {validation_input.response_state}",
             f"Validation class: {validation_record.validation_class}",

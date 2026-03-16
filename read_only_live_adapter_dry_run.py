@@ -4,6 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from orchestrator.read_only_live_adapter_interface import (
     ReadOnlyAdapterRequestContract,
@@ -22,6 +23,7 @@ APPROVED_TARGETS = [
     REPO_ROOT / "orchestrator" / "report_contract.py",
     REPO_ROOT / "orchestrator" / "utils.py",
 ]
+ReadOnlyScenario = Literal["read_completed", "read_partial", "read_denied"]
 
 
 @dataclass(frozen=True)
@@ -46,11 +48,11 @@ def default_read_scope() -> ReadScopeContract:
     )
 
 
-def run_read_only_live_adapter_dry_run(output_dir: Path | None = None) -> ReadOnlyLiveAdapterArtifacts:
-    destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+def build_read_only_request(scenario: ReadOnlyScenario = "read_completed") -> ReadOnlyAdapterRequestContract:
     scope = default_read_scope()
-    request = ReadOnlyAdapterRequestContract(
-        adapter_request_id="READ_ONLY_REQ_001",
+    target_paths = _scenario_target_paths(scenario)
+    return ReadOnlyAdapterRequestContract(
+        adapter_request_id=f"READ_ONLY_REQ_{scenario.upper()}",
         session_id="SESSION_TASK_001",
         permit_id="PERMIT_001",
         authorization_id="AUTH_001",
@@ -58,17 +60,29 @@ def run_read_only_live_adapter_dry_run(output_dir: Path | None = None) -> ReadOn
         execution_id="EXEC_001",
         task_id="TASK_001",
         adapter_id="local_read_only_adapter",
-        target_paths=[str(path.resolve()) for path in APPROVED_TARGETS],
+        target_paths=target_paths,
         read_scope=scope,
         dry_run=False,
         requested_at=SIMULATION_TIMESTAMP,
     )
 
+
+def run_read_only_live_adapter_dry_run(
+    output_dir: Path | None = None,
+    scenario: ReadOnlyScenario = "read_completed",
+) -> ReadOnlyLiveAdapterArtifacts:
+    destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    request = build_read_only_request(scenario)
+
     response, artifacts = execute_bounded_read_only_inspection(request)
 
     report_text = format_operator_report(
-        summary="Read-only live adapter dry-run completed as the first bounded real-world capability without any write-capable execution.",
+        summary=(
+            f"Read-only live adapter dry-run scenario {scenario} completed as the first bounded real-world capability "
+            "without any write-capable execution."
+        ),
         facts=[
+            f"Scenario: {scenario}",
             f"Adapter ID: {request.adapter_id}",
             f"Response state: {response.response_state}",
             f"Inspected paths: {len(response.inspected_paths)}",
@@ -241,6 +255,17 @@ def _is_within_root(path: Path, root: Path) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _scenario_target_paths(scenario: ReadOnlyScenario) -> list[str]:
+    if scenario == "read_partial":
+        return [
+            str(APPROVED_TARGETS[0].resolve()),
+            str((REPO_ROOT / "README.md").resolve()),
+        ]
+    if scenario == "read_denied":
+        return [str((REPO_ROOT / "README.md").resolve())]
+    return [str(path.resolve()) for path in APPROVED_TARGETS]
 
 
 def _safe_excerpt(text: str, max_chars: int = 120) -> str:

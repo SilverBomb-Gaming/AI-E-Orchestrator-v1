@@ -229,19 +229,19 @@ def evaluate_validation_result(
     if response_state == "read_denied":
         record = ValidationRecordContract(
             validation_id=validation_input.validation_id,
-            validation_state="validation_failed",
-            validation_class="unsupported",
+            validation_state="validation_blocked",
+            validation_class="blocked",
             passed=False,
             partial=False,
             retryable=False,
             blocked=True,
-            terminal=True,
+            terminal=False,
             summary="Read-only inspection was denied by policy.",
             notes="Denied inspection falls outside the approved bounded read scope.",
         )
         verdict = ValidationVerdictContract(
             validation_id=validation_input.validation_id,
-            validation_state="validation_failed",
+            validation_state="validation_blocked",
             retry_recommended=False,
             retry_reason="",
             operator_attention_required=True,

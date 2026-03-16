@@ -65,9 +65,11 @@ def test_validator_engine_classification_is_deterministic():
 
     assert partial_record.validation_class == "partial_success"
     assert partial_verdict.retry_recommended is True
-    assert denied_record.validation_class == "unsupported"
+    assert denied_record.validation_class == "blocked"
+    assert denied_record.validation_state == "validation_blocked"
+    assert denied_verdict.retry_recommended is False
     assert denied_verdict.operator_attention_required is True
-    assert "unsupported" in validation_classes()
+    assert "blocked" in validation_classes()
 
 
 def test_validator_engine_dry_run_writes_deterministic_outputs(tmp_path):
@@ -89,3 +91,38 @@ def test_validator_engine_dry_run_writes_deterministic_outputs(tmp_path):
     assert "No write-capable live execution, no Unity invocation" in operator_report
     for section in ["SUMMARY", "FACTS", "ASSUMPTIONS", "RECOMMENDATIONS", "TIMESTAMP"]:
         assert section in operator_report
+
+
+def test_validator_engine_dry_run_partial_scenario_is_deterministic(tmp_path):
+    artifacts = run_validator_engine_dry_run(
+        tmp_path / "aie_read_only_validation_test_partial",
+        scenario="read_partial",
+    )
+
+    read_only_response = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    validator_input = json.loads(artifacts.validator_input_path.read_text(encoding="utf-8"))
+    validator_record = json.loads(artifacts.validator_record_path.read_text(encoding="utf-8"))
+    validator_verdict = json.loads(artifacts.validator_verdict_path.read_text(encoding="utf-8"))
+
+    assert read_only_response["read_only_response"]["response_state"] == "read_partial"
+    assert validator_input["validator_input"]["response_state"] == "read_partial"
+    assert validator_record["validator_record"]["validation_class"] == "partial_success"
+    assert validator_verdict["validator_verdict"]["retry_recommended"] is True
+
+
+def test_validator_engine_dry_run_denied_scenario_is_deterministic(tmp_path):
+    artifacts = run_validator_engine_dry_run(
+        tmp_path / "aie_read_only_validation_test_denied",
+        scenario="read_denied",
+    )
+
+    read_only_response = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    validator_input = json.loads(artifacts.validator_input_path.read_text(encoding="utf-8"))
+    validator_record = json.loads(artifacts.validator_record_path.read_text(encoding="utf-8"))
+    validator_verdict = json.loads(artifacts.validator_verdict_path.read_text(encoding="utf-8"))
+
+    assert read_only_response["read_only_response"]["response_state"] == "read_denied"
+    assert validator_input["validator_input"]["response_state"] == "read_denied"
+    assert validator_record["validator_record"]["validation_class"] == "blocked"
+    assert validator_record["validator_record"]["validation_state"] == "validation_blocked"
+    assert validator_verdict["validator_verdict"]["retry_recommended"] is False

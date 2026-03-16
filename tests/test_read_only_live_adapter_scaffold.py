@@ -4,7 +4,12 @@ from pathlib import Path
 import pytest
 
 from orchestrator.read_only_live_adapter_interface import ReadOnlyAdapterRequestContract, ReadScopeContract, read_only_response_states
-from read_only_live_adapter_dry_run import default_read_scope, execute_bounded_read_only_inspection, run_read_only_live_adapter_dry_run
+from read_only_live_adapter_dry_run import (
+    build_read_only_request,
+    default_read_scope,
+    execute_bounded_read_only_inspection,
+    run_read_only_live_adapter_dry_run,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +63,53 @@ def test_read_only_execution_path_produces_deterministic_outputs(tmp_path):
     assert "No write-capable live execution, no Unity invocation" in operator_report
     for section in ["SUMMARY", "FACTS", "ASSUMPTIONS", "RECOMMENDATIONS", "TIMESTAMP"]:
         assert section in operator_report
+
+
+def test_read_only_dry_run_partial_scenario_is_deterministic(tmp_path):
+    artifacts = run_read_only_live_adapter_dry_run(
+        tmp_path / "aie_read_only_adapter_test_partial",
+        scenario="read_partial",
+    )
+
+    request_payload = json.loads(artifacts.read_only_request_path.read_text(encoding="utf-8"))
+    response_payload = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    artifact_registry = json.loads(artifacts.read_only_artifact_registry_path.read_text(encoding="utf-8"))
+
+    assert request_payload["read_only_request"]["target_paths"][1].endswith("README.md")
+    assert response_payload["read_only_response"]["response_state"] == "read_partial"
+    assert response_payload["read_only_response"]["inspected_paths"] == ["orchestrator/report_contract.py"]
+    assert len(response_payload["read_only_response"]["errors"]) == 1
+    assert response_payload["read_only_response"]["artifacts_generated"] == ["RO_ART_001"]
+    assert len(artifact_registry["read_only_artifacts"]) == 1
+
+
+def test_read_only_dry_run_denied_scenario_is_deterministic(tmp_path):
+    artifacts = run_read_only_live_adapter_dry_run(
+        tmp_path / "aie_read_only_adapter_test_denied",
+        scenario="read_denied",
+    )
+
+    request_payload = json.loads(artifacts.read_only_request_path.read_text(encoding="utf-8"))
+    response_payload = json.loads(artifacts.read_only_response_path.read_text(encoding="utf-8"))
+    artifact_registry = json.loads(artifacts.read_only_artifact_registry_path.read_text(encoding="utf-8"))
+
+    assert request_payload["read_only_request"]["target_paths"] == [str((ROOT / "README.md").resolve())]
+    assert response_payload["read_only_response"]["response_state"] == "read_denied"
+    assert response_payload["read_only_response"]["inspected_paths"] == []
+    assert response_payload["read_only_response"]["artifacts_generated"] == []
+    assert response_payload["read_only_response"]["errors"] == [
+        f"Target is outside the approved roots: {(ROOT / 'README.md').resolve()}"
+    ]
+    assert artifact_registry["read_only_artifacts"] == []
+
+
+def test_build_read_only_request_selects_deterministic_scenarios():
+    partial_request = build_read_only_request("read_partial")
+    denied_request = build_read_only_request("read_denied")
+
+    assert partial_request.target_paths[0].endswith("orchestrator\\report_contract.py")
+    assert partial_request.target_paths[1].endswith("README.md")
+    assert denied_request.target_paths == [str((ROOT / "README.md").resolve())]
 
 
 def test_read_only_execution_blocks_if_scope_is_exceeded():
