@@ -1,0 +1,52 @@
+{
+  "validator_input": {
+    "validation_id": "VALIDATION_EXEC_001",
+    "session_id": "SESSION_TASK_001",
+    "request_id": "REQ_001",
+    "execution_id": "EXEC_001",
+    "task_id": "TASK_001",
+    "adapter_id": "local_read_only_adapter",
+    "response_state": "read_completed",
+    "inspected_paths": [
+      "orchestrator/report_contract.py",
+      "orchestrator/utils.py"
+    ],
+    "artifacts_generated": [
+      "RO_ART_001",
+      "RO_ART_002"
+    ],
+    "warnings": [],
+    "errors": [],
+    "validated_at": "2026-03-16T00:00:00Z"
+  },
+  "validator_record": {
+    "validation_id": "VALIDATION_EXEC_001",
+    "validation_state": "validation_completed",
+    "validation_class": "passed",
+    "passed": true,
+    "partial": false,
+    "retryable": false,
+    "blocked": false,
+    "terminal": false,
+    "summary": "Read-only inspection completed successfully within the bounded scope.",
+    "notes": "Validation passed without warnings or errors."
+  },
+  "validator_verdict": {
+    "validation_id": "VALIDATION_EXEC_001",
+    "validation_state": "validation_completed",
+    "retry_recommended": false,
+    "retry_reason": "",
+    "operator_attention_required": false,
+    "escalation_required": false,
+    "finalized": true
+  },
+  "validation_classes": [
+    "passed",
+    "passed_with_warnings",
+    "partial_success",
+    "retryable_failure",
+    "blocked",
+    "unsupported",
+    "terminal_failure"
+  ]
+}

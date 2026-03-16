@@ -10,16 +10,14 @@
     "adapter_id": "local_read_only_adapter",
     "target_paths": [
       "orchestrator/report_contract.py",
-      "contracts/templates/post_dispatch_audit_template.json"
+      "orchestrator/utils.py"
     ],
     "read_scope": {
       "allowed_roots": [
-        "orchestrator",
-        "contracts/templates"
+        "orchestrator"
       ],
       "allowed_extensions": [
-        ".py",
-        ".json"
+        ".py"
       ],
       "max_file_count": 2,
       "max_total_bytes": 16384,
@@ -36,7 +34,7 @@
     "read_completed": true,
     "inspected_paths": [
       "orchestrator/report_contract.py",
-      "contracts/templates/post_dispatch_audit_template.json"
+      "orchestrator/utils.py"
     ],
     "warnings": [],
     "errors": [],
@@ -57,8 +55,8 @@
     {
       "artifact_id": "RO_ART_002",
       "artifact_type": "inspection_report",
-      "source_path": "contracts/templates/post_dispatch_audit_template.json",
-      "summary": "bytes=<bounded> sha256_16=<deterministic> excerpt={ \"post_dispatch_audit_request\"",
+      "source_path": "orchestrator/utils.py",
+      "summary": "bytes=<bounded> sha256_16=<deterministic> excerpt=from __future__ import annotations",
       "captured_at": "2026-03-16T00:00:00Z"
     }
   ],

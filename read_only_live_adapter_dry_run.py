@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "runs" / "aie_read_only_adapter_test"
 APPROVED_TARGETS = [
     REPO_ROOT / "orchestrator" / "report_contract.py",
-    REPO_ROOT / "contracts" / "templates" / "post_dispatch_audit_template.json",
+    REPO_ROOT / "orchestrator" / "utils.py",
 ]
 
 
@@ -37,9 +37,8 @@ def default_read_scope() -> ReadScopeContract:
     return ReadScopeContract(
         allowed_roots=[
             str((REPO_ROOT / "orchestrator").resolve()),
-            str((REPO_ROOT / "contracts" / "templates").resolve()),
         ],
-        allowed_extensions=[".py", ".json"],
+        allowed_extensions=[".py"],
         max_file_count=2,
         max_total_bytes=16384,
         recursive_allowed=False,
@@ -117,6 +116,7 @@ def execute_bounded_read_only_inspection(
 ) -> tuple[ReadOnlyAdapterResponseContract, list[ReadOnlyArtifactContract]]:
     scope = request.read_scope
     resolved_roots = [Path(root).resolve() for root in scope.allowed_roots]
+    allowed_extensions = {suffix.lower() for suffix in scope.allowed_extensions}
     if len(request.target_paths) > scope.max_file_count:
         return _blocked_response(request, ["Requested file count exceeds bounded read scope."], [])
 
@@ -126,18 +126,29 @@ def execute_bounded_read_only_inspection(
     errors: list[str] = []
     inspected_paths: list[str] = []
     artifacts: list[ReadOnlyArtifactContract] = []
+    policy_denied = False
 
     for index, target in enumerate(resolved_targets, start=1):
-        if not target.exists() or not target.is_file():
+        if not target.exists():
             errors.append(f"Target does not exist or is not a file: {target}")
             continue
+        if target.is_dir():
+            policy_denied = True
+            if not scope.recursive_allowed:
+                errors.append("Directory traversal is denied when recursive_allowed is false.")
+            else:
+                errors.append("Directory traversal is intentionally unsupported in this bounded read-only path.")
+            continue
         if not any(_is_within_root(target, root) for root in resolved_roots):
+            policy_denied = True
             errors.append(f"Target is outside the approved roots: {target}")
             continue
-        if target.suffix.lower() not in {suffix.lower() for suffix in scope.allowed_extensions}:
+        if target.suffix.lower() not in allowed_extensions:
+            policy_denied = True
             errors.append(f"Target extension is not allowed: {target.suffix}")
             continue
-        if not scope.hidden_files_allowed and any(part.startswith(".") for part in target.relative_to(REPO_ROOT).parts):
+        if not scope.hidden_files_allowed and any(part.startswith(".") for part in target.parts):
+            policy_denied = True
             errors.append(f"Hidden targets are not allowed: {target}")
             continue
 
@@ -165,6 +176,8 @@ def execute_bounded_read_only_inspection(
         )
 
     if errors and not inspected_paths:
+        if policy_denied:
+            return _denied_response(request, errors, warnings)
         return _blocked_response(request, errors, warnings)
 
     response_state = "read_completed"
@@ -193,6 +206,25 @@ def _blocked_response(
         adapter_request_id=request.adapter_request_id,
         adapter_id=request.adapter_id,
         response_state="read_blocked",
+        read_completed=False,
+        inspected_paths=[],
+        warnings=warnings,
+        errors=errors,
+        artifacts_generated=[],
+        completed_at=SIMULATION_TIMESTAMP,
+    )
+    return response, []
+
+
+def _denied_response(
+    request: ReadOnlyAdapterRequestContract,
+    errors: list[str],
+    warnings: list[str],
+) -> tuple[ReadOnlyAdapterResponseContract, list[ReadOnlyArtifactContract]]:
+    response = ReadOnlyAdapterResponseContract(
+        adapter_request_id=request.adapter_request_id,
+        adapter_id=request.adapter_id,
+        response_state="read_denied",
         read_completed=False,
         inspected_paths=[],
         warnings=warnings,
