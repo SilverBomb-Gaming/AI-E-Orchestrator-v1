@@ -1,0 +1,49 @@
+{
+  "execution_closeout_request": {
+    "closeout_id": "CLOSEOUT_SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "permit_id": "PERMIT_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "authorization_id": "AUTH_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "request_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "session_state": "session_completed",
+    "stop_reason": "completed",
+    "time_budget_seconds": 300,
+    "artifacts_summary_count": 1,
+    "closeout_requested_at": "2026-03-15T00:00:00Z"
+  },
+  "execution_closeout_record": {
+    "closeout_id": "CLOSEOUT_SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "closeout_state": "closed_successfully",
+    "completed": true,
+    "completed_at": "2026-03-15T00:00:00Z",
+    "final_outcome": "success",
+    "final_summary": "Session session_completed closed as closed_successfully.",
+    "retained_artifacts": [
+      "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_CLOSEOUT_001"
+    ],
+    "discarded_artifacts": [],
+    "cleanup_required": false,
+    "cleanup_notes": "Retained and discarded artifact sets were summarized deterministically.",
+    "operator_attention_required": false
+  },
+  "execution_closeout_verdict": {
+    "closeout_id": "CLOSEOUT_SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "closeout_state": "closed_successfully",
+    "operator_review_required": false,
+    "cleanup_required": false,
+    "retry_recommended": false,
+    "retry_reason": "",
+    "escalation_required": false
+  },
+  "state_transitions": {
+    "session_completed": "closeout_requested",
+    "closeout_requested+session_completed": "closed_successfully",
+    "closeout_requested+session_failed": "closed_failed",
+    "closeout_requested+session_cancelled": "closed_cancelled",
+    "closeout_requested+session_expired": "closed_expired",
+    "closeout_requested+session_blocked": "closed_blocked"
+  }
+}

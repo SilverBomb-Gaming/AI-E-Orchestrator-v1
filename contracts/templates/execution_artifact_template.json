@@ -1,0 +1,25 @@
+{
+  "execution_artifact_record": {
+    "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_CLOSEOUT_001",
+    "session_id": "SESSION_ACT_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "execution_id": "EXEC_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_ACTIVATION",
+    "task_id": "REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH",
+    "artifact_type": "operator_report",
+    "artifact_source": "execution_closeout_dry_run",
+    "artifact_path": "runs/aie_execution_closeout_test/operator_report.md",
+    "produced_by_adapter": "adapter.testing.future",
+    "produced_timestamp": "2026-03-15T00:00:00Z",
+    "retention_class": "retained_output",
+    "cleanup_required": false,
+    "summary": "Deterministic final operator report artifact for closeout review."
+  },
+  "artifact_retention_record": {
+    "artifact_id": "ART_REQ_AIE_RUNTIME_ACTIVATION_TEST_GRAPH_CLOSEOUT_001",
+    "retained": true,
+    "retention_reason": "Final operator-facing closeout artifact should be retained for review.",
+    "retention_policy": "closeout_record_retention",
+    "expires_at": "2026-03-22T00:00:00Z",
+    "cleanup_required": false,
+    "cleanup_reason": ""
+  }
+}
