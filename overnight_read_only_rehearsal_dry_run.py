@@ -4,6 +4,7 @@ import json
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from orchestrator.report_contract import format_operator_report, validate_operator_report
 from orchestrator.utils import safe_write_text, write_json
@@ -13,6 +14,8 @@ from validator_engine_dry_run import run_validator_engine_dry_run
 
 SIMULATION_TIMESTAMP = "2026-03-16T08:00:00Z"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_rehearsal"
+TERMINAL_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_rehearsal_terminal"
+OvernightVariant = Literal["retryable_failure", "terminal_failure"]
 
 
 @dataclass(frozen=True)
@@ -27,9 +30,11 @@ class OvernightReadOnlyRehearsalArtifacts:
 
 def run_overnight_read_only_rehearsal(
     output_dir: Path | None = None,
+    variant: OvernightVariant = "retryable_failure",
 ) -> OvernightReadOnlyRehearsalArtifacts:
-    destination = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    destination = Path(output_dir) if output_dir else _default_output_dir_for_variant(variant)
     read_scope = default_read_scope().to_payload()
+    failure_scenario = _failure_scenario_for_variant(variant)
     scenarios = [
         {
             "step_id": "REHEARSAL_STEP_001",
@@ -38,7 +43,7 @@ def run_overnight_read_only_rehearsal(
         },
         {
             "step_id": "REHEARSAL_STEP_002",
-            "scenario": "read_failed_retryable",
+            "scenario": failure_scenario,
             "purpose": "bounded_non_success_probe",
         },
     ]
@@ -78,8 +83,9 @@ def run_overnight_read_only_rehearsal(
             )
 
     execution_summary = {
-        "rehearsal_id": "OVERNIGHT_READ_ONLY_REHEARSAL_001",
+        "rehearsal_id": _rehearsal_id_for_variant(variant),
         "executed_at": SIMULATION_TIMESTAMP,
+        "variant": variant,
         "attempted_scenarios": [result["scenario"] for result in scenario_results],
         "success_count": sum(1 for result in scenario_results if result["response_state"] == "read_completed"),
         "partial_count": sum(1 for result in scenario_results if result["response_state"] == "read_partial"),
@@ -90,7 +96,8 @@ def run_overnight_read_only_rehearsal(
         "read_only_scope": read_scope,
     }
     validator_summary = {
-        "rehearsal_id": "OVERNIGHT_READ_ONLY_REHEARSAL_001",
+        "rehearsal_id": _rehearsal_id_for_variant(variant),
+        "variant": variant,
         "validation_classes_exercised": sorted({str(result["validation_class"]) for result in scenario_results}),
         "retry_recommended_for": [result["scenario"] for result in scenario_results if result["retry_recommended"]],
         "operator_attention_required_for": [
@@ -101,28 +108,27 @@ def run_overnight_read_only_rehearsal(
         ],
     }
     handoff_summary = {
-        "handoff_id": "OVERNIGHT_READ_ONLY_HANDOFF_001",
-        "summary_title": "Morning handoff for bounded overnight read-only rehearsal",
+        "handoff_id": _handoff_id_for_variant(variant),
+        "variant": variant,
+        "summary_title": _handoff_title_for_variant(variant),
         "attempted": [result["scenario"] for result in scenario_results],
         "succeeded": [result["scenario"] for result in scenario_results if result["response_state"] == "read_completed"],
         "partial": [result["scenario"] for result in scenario_results if result["response_state"] == "read_partial"],
         "denied": [result["scenario"] for result in scenario_results if result["response_state"] == "read_denied"],
         "failed": [result["scenario"] for result in scenario_results if result["response_state"] == "read_failed"],
-        "safe_next_steps": [
-            "Repeat retryable failed reads only within the same approved read-only scope after reviewing the recorded failure reason.",
-            "Keep the rehearsal disconnected from runner.py and any write-capable runtime path.",
-            "Do not treat this rehearsal as live overnight production.",
-        ],
+        "safe_next_steps": _safe_next_steps_for_variant(variant),
+        "operator_attention_level": _operator_attention_level_for_variant(variant),
         "ready_for_additional_bounded_rehearsal": True,
         "ready_for_live_overnight_production": False,
     }
 
     report_text = format_operator_report(
         summary=(
-            "First bounded overnight read-only rehearsal completed deterministically with one successful bounded read "
-            "and one retryable read_failed path. This remains a rehearsal only, not live overnight production."
+            f"Bounded overnight read-only rehearsal variant {variant} completed deterministically with one successful bounded read "
+            f"and one {_failure_label_for_variant(variant)} read_failed path. This remains a rehearsal only, not live overnight production."
         ),
         facts=[
+            f"Variant: {variant}",
             f"Attempted scenarios: {', '.join(execution_summary['attempted_scenarios'])}",
             f"Success count: {execution_summary['success_count']}",
             f"Partial count: {execution_summary['partial_count']}",
@@ -158,9 +164,10 @@ def run_overnight_read_only_rehearsal(
         rehearsal_request_path,
         {
             "rehearsal_request": {
-                "rehearsal_id": "OVERNIGHT_READ_ONLY_REHEARSAL_001",
+                "rehearsal_id": _rehearsal_id_for_variant(variant),
                 "requested_at": SIMULATION_TIMESTAMP,
                 "mode": "overnight_read_only_rehearsal",
+                "variant": variant,
                 "approved_scope": read_scope,
                 "scenarios": scenarios,
                 "live_production": False,
@@ -193,3 +200,59 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def _failure_scenario_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "read_failed_terminal"
+    return "read_failed_retryable"
+
+
+def _default_output_dir_for_variant(variant: OvernightVariant) -> Path:
+    if variant == "terminal_failure":
+        return TERMINAL_OUTPUT_DIR
+    return DEFAULT_OUTPUT_DIR
+
+
+def _rehearsal_id_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "OVERNIGHT_READ_ONLY_REHEARSAL_TERMINAL_001"
+    return "OVERNIGHT_READ_ONLY_REHEARSAL_001"
+
+
+def _handoff_id_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "OVERNIGHT_READ_ONLY_HANDOFF_TERMINAL_001"
+    return "OVERNIGHT_READ_ONLY_HANDOFF_001"
+
+
+def _handoff_title_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "Morning handoff for bounded overnight read-only rehearsal terminal variant"
+    return "Morning handoff for bounded overnight read-only rehearsal"
+
+
+def _failure_label_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "terminal"
+    return "retryable"
+
+
+def _safe_next_steps_for_variant(variant: OvernightVariant) -> list[str]:
+    if variant == "terminal_failure":
+        return [
+            "Do not retry the same bounded request; review the structural invalidity before any future rehearsal is approved.",
+            "Escalate the terminal failure handoff for conservative operator review before changing the bounded request shape.",
+            "Do not treat this rehearsal as live overnight production.",
+        ]
+    return [
+        "Repeat retryable failed reads only within the same approved read-only scope after reviewing the recorded failure reason.",
+        "Keep the rehearsal disconnected from runner.py and any write-capable runtime path.",
+        "Do not treat this rehearsal as live overnight production.",
+    ]
+
+
+def _operator_attention_level_for_variant(variant: OvernightVariant) -> str:
+    if variant == "terminal_failure":
+        return "high"
+    return "medium"
