@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
 from .progress import phase_payload
+from .time_utils import get_current_timestamp
 from orchestrator.utils import ensure_dir, read_json, write_json
 
 
@@ -102,6 +102,7 @@ class StateStore:
         state.setdefault("progress_percent", None)
         state.setdefault("waiting_reason", "Waiting for new task intake.")
         state.setdefault("blocked_reason", None)
+        state.setdefault("timestamp", state.get("updated_at") or state.get("started_at"))
         return state
 
     def save(self, state: Dict[str, Any]) -> None:
@@ -114,6 +115,7 @@ class StateStore:
             if persisted.get("last_generated_plan_steps") and not state.get("last_generated_plan_steps"):
                 state["last_generated_plan_steps"] = list(persisted.get("last_generated_plan_steps", []))
         state["updated_at"] = self._iso_now()
+        state["timestamp"] = state["updated_at"]
         write_json(self.state_path, state)
 
     def update_runtime(
@@ -261,4 +263,4 @@ class StateStore:
         return state
 
     def _iso_now(self) -> str:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return get_current_timestamp()

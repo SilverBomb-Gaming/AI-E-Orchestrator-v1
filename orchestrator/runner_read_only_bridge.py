@@ -11,7 +11,7 @@ from .validator_engine_interface import ValidationInputContract, evaluate_valida
 from read_only_live_adapter_dry_run import ReadOnlyScenario, run_read_only_live_adapter_dry_run
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T10:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-16 06:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parents[1] / "runs" / "aie_live_read_only_session"
 ALLOWED_SCENARIOS = {
     "read_completed",

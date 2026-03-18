@@ -10,7 +10,7 @@ from orchestrator.utils import safe_write_text, write_json
 from overnight_read_only_rehearsal_dry_run import run_overnight_read_only_rehearsal
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T08:30:00Z"
+SIMULATION_TIMESTAMP = "2026-03-16 04:30:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_comparison"
 
 

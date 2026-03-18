@@ -21,8 +21,8 @@ from orchestrator.utils import safe_write_text, write_json
 
 REQUEST_ID = "REQ_AIE_DRY_RUN_EXECUTION_TEST"
 SESSION_ID = "SESSION_AIE_DRY_RUN_EXECUTION_TEST"
-CREATED_AT = "2026-03-15T00:00:00Z"
-SIMULATION_TIMESTAMP = "2026-03-15T00:00:00Z"
+CREATED_AT = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
+SIMULATION_TIMESTAMP = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_dry_run_execution_test"
 
 

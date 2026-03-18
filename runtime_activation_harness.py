@@ -35,8 +35,8 @@ ActivationStatus = Literal[
 
 REQUEST_ID = "REQ_AIE_RUNTIME_ACTIVATION_TEST"
 SESSION_ID = "SESSION_AIE_RUNTIME_ACTIVATION_TEST"
-CREATED_AT = "2026-03-15T00:00:00Z"
-SIMULATION_TIMESTAMP = "2026-03-15T00:00:00Z"
+CREATED_AT = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
+SIMULATION_TIMESTAMP = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_runtime_activation_test"
 
 

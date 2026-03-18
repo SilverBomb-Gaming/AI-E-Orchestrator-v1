@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .time_utils import get_current_timestamp
 from orchestrator.utils import ensure_dir, safe_write_text, write_json
 
 
@@ -30,6 +31,7 @@ class ArtifactWriter:
             "task": dict(task),
             "result": dict(result),
             "validation": dict(validation),
+            "timestamp": get_current_timestamp(),
         }
         write_json(artifact_path, payload)
         safe_write_text(summary_path, self._summary_markdown(task, result, validation))
@@ -38,7 +40,9 @@ class ArtifactWriter:
 
     def write_session_summary(self, payload: Dict[str, Any]) -> str:
         path = self.session_dir / "session_summary.json"
-        write_json(path, payload)
+        summary_payload = dict(payload)
+        summary_payload.setdefault("timestamp", get_current_timestamp())
+        write_json(path, summary_payload)
         return self._relative(path)
 
     def _summary_markdown(
@@ -64,7 +68,7 @@ class ArtifactWriter:
             f"- queue_action: {validation.get('queue_action', 'complete')}",
             "",
             "TIMESTAMP",
-            task.get("last_attempt_timestamp") or task.get("completed_timestamp") or "runtime_generated",
+            task.get("last_attempt_timestamp") or task.get("completed_timestamp") or get_current_timestamp(),
             "",
         ]
         return "\n".join(lines)

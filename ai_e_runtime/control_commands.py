@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
 
 from .content_policy import load_profile, update_rating_lock, update_rating_target
 from .runtime_state import RuntimeState
 from .supervisor import Supervisor
+from .time_utils import get_current_timestamp
 
 
 @dataclass(frozen=True)
@@ -14,13 +15,16 @@ class ControlCommandResult:
     title: str
     body: str
     should_exit: bool = False
+    timestamp: str = field(default_factory=get_current_timestamp)
 
     def to_text(self) -> str:
-        if not self.title:
+        if not self.title and not self.body.strip():
             return self.body
+        if not self.title:
+            return f"{self.body}\n\nTIMESTAMP: {self.timestamp}"
         if not self.body:
-            return self.title
-        return f"{self.title}\n\n{self.body}"
+            return f"{self.title}\n\nTIMESTAMP: {self.timestamp}"
+        return f"{self.title}\n\n{self.body}\n\nTIMESTAMP: {self.timestamp}"
 
 
 class ControlCommandHandler:

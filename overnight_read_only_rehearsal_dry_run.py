@@ -12,7 +12,7 @@ from read_only_live_adapter_dry_run import default_read_scope
 from validator_engine_dry_run import run_validator_engine_dry_run
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T08:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-16 04:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_rehearsal"
 TERMINAL_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_rehearsal_terminal"
 MIXED_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_overnight_read_only_rehearsal_mixed"

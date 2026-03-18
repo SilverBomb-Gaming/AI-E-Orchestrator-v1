@@ -13,7 +13,7 @@ from orchestrator.report_contract import format_operator_report, validate_operat
 from orchestrator.utils import safe_write_text, write_json
 
 
-SIMULATION_TIMESTAMP = "2026-03-15T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_execution_closeout_test"
 
 
@@ -56,7 +56,7 @@ def run_execution_closeout_dry_run(output_dir: Path | None = None) -> ExecutionC
             "complete",
             opened_by="operator_placeholder",
             opened_timestamp=SIMULATION_TIMESTAMP,
-            expires_at="2026-03-16T00:00:00Z",
+            expires_at="2026-03-15 20:00:00 -04:00 (Eastern Time — New York)",
             scope_limit="dry_run_only",
             time_budget_seconds=300,
             notes="Dry-run session completed for deterministic closeout review.",
@@ -81,7 +81,7 @@ def run_execution_closeout_dry_run(output_dir: Path | None = None) -> ExecutionC
         retained=True,
         retention_reason="Final operator-facing closeout artifact should be retained for review.",
         retention_policy="closeout_record_retention",
-        expires_at="2026-03-22T00:00:00Z",
+        expires_at="2026-03-21 20:00:00 -04:00 (Eastern Time — New York)",
         cleanup_required=False,
         cleanup_reason="",
     )

@@ -15,6 +15,7 @@ from ai_e_runtime.control_commands import ControlCommandHandler
 from ai_e_runtime.conversation_router import ConversationRouter
 from ai_e_runtime.supervisor import Supervisor, SupervisorConfig
 from ai_e_runtime.task_intake import ConversationalTaskIntake, IntakeResult
+from ai_e_runtime.time_utils import get_current_timestamp
 from orchestrator.config import OrchestratorConfig
 
 
@@ -188,9 +189,12 @@ def run_interactive_session(
             output_handle.flush()
         else:
             output_handle.write(
-                "AI-E INPUT NOT RECOGNIZED\n\n"
-                "Message was not classified as a status query or TASK_REQUEST.\n\n"
-                "Recommendation: Ask a status question or enter a direct task request such as 'stabilize LEVEL_0001 ...'.\n"
+                _append_timestamp(
+                    "AI-E INPUT NOT RECOGNIZED\n\n"
+                    "Message was not classified as a status query or TASK_REQUEST.\n\n"
+                    "Recommendation: Ask a status question or enter a direct task request such as 'stabilize LEVEL_0001 ...'."
+                )
+                + "\n"
             )
             output_handle.flush()
     worker.join()
@@ -351,7 +355,7 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
                 f"Recommendation: {plan_recommendation}",
             ]
         )
-        return "\n".join(lines)
+        return _append_timestamp("\n".join(lines))
     lines = [
         "AI-E TASK ACCEPTED",
         "",
@@ -408,7 +412,7 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
     ]
     if result.routing.downgraded and result.routing.downgrade_reason:
         lines.insert(-4, f"Downgrade Reason: {result.routing.downgrade_reason}")
-    return "\n".join(lines)
+    return _append_timestamp("\n".join(lines))
 
 
 def _yes_no(value: bool) -> str:
@@ -471,6 +475,7 @@ def print_runtime_result(result: object) -> None:
     print(
         json.dumps(
             {
+                "timestamp": runtime_status.get("timestamp") or get_current_timestamp(),
                 "session_id": result.session_id,
                 "stop_reason": result.stop_reason,
                 "elapsed_time_seconds": result.elapsed_time_seconds,
@@ -495,6 +500,11 @@ def print_runtime_result(result: object) -> None:
         )
     )
     return None
+
+
+def _append_timestamp(text: str) -> str:
+    stripped = str(text).rstrip()
+    return f"{stripped}\n\nTIMESTAMP: {get_current_timestamp()}"
 
 
 def _install_interrupt_handlers(supervisor: Supervisor) -> dict[str, object]:

@@ -14,7 +14,7 @@ from orchestrator.utils import safe_write_text, write_json
 from post_decision_dispatch_dry_run import run_post_decision_dispatch_dry_run
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-15 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_post_dispatch_audit_test"
 
 

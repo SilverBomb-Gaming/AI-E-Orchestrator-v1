@@ -4,15 +4,19 @@ import json
 import os
 import re
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable
 from uuid import uuid4
 
+from .time_utils import get_current_timestamp
+
 
 def utc_timestamp(compact: bool = True) -> str:
-    fmt = "%Y%m%d_%H%M%S" if compact else "%Y-%m-%dT%H:%M:%SZ"
-    return datetime.now(timezone.utc).strftime(fmt)
+    if compact:
+        from datetime import datetime, timezone
+
+        return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return get_current_timestamp()
 
 
 def ensure_dir(path: Path) -> Path:
@@ -111,7 +115,7 @@ def append_live_event(payload: Dict[str, Any], root: Path | None = None) -> None
     except TypeError:
         return
     if "ts_utc" not in record:
-        record["ts_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        record["ts_utc"] = get_current_timestamp()
     destination_root = Path(root) if root else Path(__file__).resolve().parents[1]
     destination = destination_root / "reports" / "live_events.jsonl"
     try:

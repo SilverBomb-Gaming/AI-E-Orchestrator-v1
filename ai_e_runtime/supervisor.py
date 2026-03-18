@@ -18,6 +18,7 @@ from .progress import format_progress_line
 from .runtime_state import RuntimeState, RuntimeStateSnapshot
 from .scheduler import Scheduler
 from .state_store import StateStore
+from .time_utils import get_current_timestamp
 
 
 @dataclass(frozen=True)
@@ -457,7 +458,7 @@ class Supervisor:
         return merged
 
     def _status(self, message: str) -> None:
-        print(message)
+        print(f"[{get_current_timestamp(self.time_source())}] {message}")
 
     def _progress_status_line(self, state: Dict[str, Any], *, task_id: str | None = None) -> str:
         prefix = "PROGRESS"

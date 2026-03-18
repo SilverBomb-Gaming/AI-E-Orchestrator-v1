@@ -120,6 +120,7 @@ def test_conversation_router_answers_status_queries(tmp_path):
     assert "Current Plan Step: Inspect zombie animation pipeline" in running_step_response.answer
     assert "Next Plan Step: Inspect weapon bootstrap" in next_step_response.answer
     assert "Steps Remaining: 2" in steps_left_response.answer
+    assert "TIMESTAMP: " in status_response.to_text()
     assert router.classify_prompt("help") == "CONTROL_COMMAND"
     assert router.classify_prompt("what are you doing right now") == "STATUS_QUERY"
     assert router.classify_prompt("what plan did you generate") == "STATUS_QUERY"

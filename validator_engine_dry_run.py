@@ -11,7 +11,7 @@ from orchestrator.validator_engine_interface import ValidationInputContract, eva
 from read_only_live_adapter_dry_run import ReadOnlyScenario, run_read_only_live_adapter_dry_run
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-15 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_read_only_validation_test"
 DEFAULT_FAILED_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_read_only_failed_test"
 

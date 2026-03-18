@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from .progress import format_progress_line
 from .runtime_state import RuntimeState
+from .time_utils import get_current_timestamp
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,7 @@ class ConversationResponse:
     recommendation: str
     query_type: str
     payload: Dict[str, Any]
+    timestamp: str = field(default_factory=get_current_timestamp)
 
     def to_text(self) -> str:
         lines = [
@@ -23,6 +25,7 @@ class ConversationResponse:
             self.answer,
             "",
             f"Recommendation: {self.recommendation}",
+            f"TIMESTAMP: {self.timestamp}",
         ]
         return "\n".join(lines)
 
@@ -380,6 +383,7 @@ class ConversationRouter:
             f"Rating Target: {snapshot.rating_target or 'none'}",
             f"Rating Locked: {'yes' if snapshot.rating_locked else 'no'}",
             format_progress_line(snapshot.to_payload()),
+            f"Heartbeat Timestamp: {snapshot.heartbeat_timestamp or 'unknown'}",
         ]
         if snapshot.waiting_reason:
             lines.append(f"Waiting Reason: {snapshot.waiting_reason}")

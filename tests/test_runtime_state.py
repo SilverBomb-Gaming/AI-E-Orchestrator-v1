@@ -36,6 +36,7 @@ def test_runtime_state_returns_expected_fields_and_writes_snapshot(tmp_path):
     snapshot = runtime_state.get_snapshot()
 
     assert snapshot.session_id == "runtime-state-session"
+    assert snapshot.timestamp
     assert snapshot.session_start_time
     assert snapshot.session_elapsed_seconds >= 0.0
     assert snapshot.session_state == "complete"
@@ -65,6 +66,7 @@ def test_runtime_state_returns_expected_fields_and_writes_snapshot(tmp_path):
     assert runtime_status_path.exists()
     payload = json.loads(runtime_status_path.read_text(encoding="utf-8"))
     assert payload["session_id"] == "runtime-state-session"
+    assert payload["timestamp"]
     assert payload["session_state"] == "complete"
     assert payload["work_state"] == "halted"
     assert payload["budget_mode"] == "terminating"

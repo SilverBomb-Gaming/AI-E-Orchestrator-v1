@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Iterable, List
 
 from .architecture_blueprint import required_response_sections
+from .time_utils import is_standard_timestamp, normalize_timestamp
 
 
 def format_operator_report(
@@ -14,12 +15,13 @@ def format_operator_report(
     recommendations: Iterable[str],
     timestamp: str,
 ) -> str:
+    normalized_timestamp = normalize_timestamp(timestamp)
     section_bodies = {
         "SUMMARY": _normalize_paragraph(summary),
         "FACTS": _normalize_bullets(facts),
         "ASSUMPTIONS": _normalize_bullets(assumptions),
         "RECOMMENDATIONS": _normalize_bullets(recommendations),
-        "TIMESTAMP": _normalize_paragraph(timestamp),
+        "TIMESTAMP": _normalize_paragraph(normalized_timestamp),
     }
     blocks: List[str] = []
     for title in required_response_sections():
@@ -61,6 +63,8 @@ def validate_operator_report(text: str) -> ReportValidationResult:
             lines = [line for line in trailing.split("\n") if line.strip()]
             if len(lines) < 2:
                 errors.append("TIMESTAMP section must include a timestamp value")
+            elif not is_standard_timestamp(lines[1]):
+                errors.append("TIMESTAMP section must use the standardized AI-E timestamp format")
     return ReportValidationResult(is_valid=not errors, errors=errors)
 
 

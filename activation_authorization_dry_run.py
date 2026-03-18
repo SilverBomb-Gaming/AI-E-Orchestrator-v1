@@ -13,7 +13,7 @@ from orchestrator.report_contract import format_operator_report, validate_operat
 from orchestrator.utils import safe_write_text, write_json
 
 
-SIMULATION_TIMESTAMP = "2026-03-15T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_activation_authorization_test"
 
 
@@ -57,7 +57,7 @@ def run_activation_authorization_dry_run(output_dir: Path | None = None) -> Acti
         "approve",
         authorized_by="operator_placeholder",
         authorization_timestamp=SIMULATION_TIMESTAMP,
-        expires_at="2026-03-16T00:00:00Z",
+        expires_at="2026-03-15 20:00:00 -04:00 (Eastern Time — New York)",
         notes="Dry-run authorization permits deterministic activation only.",
     )
 

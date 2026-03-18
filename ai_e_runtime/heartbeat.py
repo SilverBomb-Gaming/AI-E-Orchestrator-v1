@@ -6,6 +6,8 @@ from typing import Callable, Dict, Any
 
 from orchestrator.utils import ensure_dir
 
+from .time_utils import format_timestamp
+
 
 class HeartbeatEmitter:
     """Appends SESSION_HEARTBEAT records to logs/session_heartbeat.log."""
@@ -41,7 +43,7 @@ class HeartbeatEmitter:
         now = self._now()
         if not force and not self.should_emit(now):
             return None
-        timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = format_timestamp(now)
         block = "\n".join(
             [
                 "SESSION_HEARTBEAT",
@@ -62,7 +64,7 @@ class HeartbeatEmitter:
         return {
             "log_path": str(self.log_path),
             "interval_seconds": self.interval_seconds,
-            "last_emitted_at": self.last_emitted_at.strftime("%Y-%m-%dT%H:%M:%SZ") if self.last_emitted_at else None,
+            "last_emitted_at": format_timestamp(self.last_emitted_at) if self.last_emitted_at else None,
         }
 
     def _now(self) -> datetime:

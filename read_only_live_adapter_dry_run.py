@@ -16,7 +16,7 @@ from orchestrator.report_contract import format_operator_report, validate_operat
 from orchestrator.utils import safe_write_text, write_json
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-15 20:00:00 -04:00 (Eastern Time — New York)"
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "runs" / "aie_read_only_adapter_test"
 DEFAULT_FAILED_OUTPUT_DIR = REPO_ROOT / "runs" / "aie_read_only_failed_test"

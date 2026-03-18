@@ -94,7 +94,7 @@ def test_report_formatter_section_ordering():
     )
 
     assert report.index("SUMMARY") < report.index("FACTS") < report.index("ASSUMPTIONS") < report.index("RECOMMENDATIONS") < report.index("TIMESTAMP")
-    assert report.strip().endswith("2026-03-15T18:00:00Z")
+    assert report.strip().endswith("2026-03-15 14:00:00 -04:00 (Eastern Time — New York)")
 
 
 def test_report_validator_pass_case():

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from .time_utils import get_current_timestamp
 from orchestrator.utils import ensure_dir, read_json, write_json
 
 
@@ -190,4 +190,4 @@ class Scheduler:
         raise KeyError("Queue task is missing task_id/id")
 
     def _iso_now(self) -> str:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return get_current_timestamp()

@@ -11,10 +11,12 @@ from orchestrator.utils import write_json
 from .content_policy import load_profile
 from .scheduler import Scheduler
 from .state_store import StateStore
+from .time_utils import get_current_timestamp, parse_timestamp
 
 
 @dataclass(frozen=True)
 class RuntimeStateSnapshot:
+    timestamp: str
     session_id: str
     session_start_time: str
     session_elapsed_seconds: float
@@ -59,6 +61,7 @@ class RuntimeStateSnapshot:
 
     def to_payload(self) -> Dict[str, Any]:
         return {
+            "timestamp": self.timestamp,
             "session_id": self.session_id,
             "session_start_time": self.session_start_time,
             "session_elapsed_seconds": self.session_elapsed_seconds,
@@ -169,6 +172,7 @@ class RuntimeState:
             tasks_failed=tasks_failed,
         )
         return RuntimeStateSnapshot(
+            timestamp=get_current_timestamp(),
             session_id=str(state.get("session_id") or self.session_id),
             session_start_time=str(state.get("started_at") or ""),
             session_elapsed_seconds=round(float(state.get("elapsed_time_seconds", 0.0)), 3),
@@ -246,7 +250,7 @@ class RuntimeState:
             return None
         current = now or datetime.now(timezone.utc)
         try:
-            heartbeat = datetime.fromisoformat(snapshot.heartbeat_timestamp.replace("Z", "+00:00"))
+            heartbeat = parse_timestamp(snapshot.heartbeat_timestamp).astimezone(timezone.utc)
         except ValueError:
             return None
         return max(0.0, round((current - heartbeat).total_seconds(), 3))

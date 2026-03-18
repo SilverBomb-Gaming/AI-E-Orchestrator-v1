@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
 
 from .architecture_blueprint import ConversationalRequest
+from .time_utils import normalize_timestamp, parse_timestamp
 
 
 _REQUIRED_FIELDS = {
@@ -76,6 +76,8 @@ def validate_request_payload(payload: Mapping[str, Any]) -> ConversationalReques
     if errors:
         raise RequestSchemaValidationError(errors)
 
+    normalized["created_at"] = normalize_timestamp(str(normalized["created_at"]).strip())
+
     return ConversationalRequest(
         request_id=str(normalized["request_id"]).strip(),
         session_id=str(normalized["session_id"]).strip(),
@@ -105,14 +107,15 @@ def _validate_unknown_fields(payload: Mapping[str, Any], errors: list[RequestSch
 def _validate_iso8601_utc(value: Any, errors: list[RequestSchemaError]) -> None:
     if not isinstance(value, str) or not value.strip():
         return
-    text = value.strip()
-    if not text.endswith("Z"):
-        errors.append(RequestSchemaError(field="created_at", message="must use an ISO 8601 UTC timestamp ending with Z"))
-        return
     try:
-        datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parse_timestamp(value.strip())
     except ValueError:
-        errors.append(RequestSchemaError(field="created_at", message="must be a valid ISO 8601 timestamp"))
+        errors.append(
+            RequestSchemaError(
+                field="created_at",
+                message="must be a valid timestamp convertible to the standardized AI-E format",
+            )
+        )
 
 
 def _validate_mapping_field(payload: Mapping[str, Any], field_name: str, errors: list[RequestSchemaError]) -> None:

@@ -14,7 +14,7 @@ from orchestrator.report_contract import format_operator_report, validate_operat
 from orchestrator.utils import safe_write_text, write_json
 
 
-SIMULATION_TIMESTAMP = "2026-03-16T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-15 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_operator_handoff_review_test"
 
 

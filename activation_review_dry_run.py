@@ -15,7 +15,7 @@ from orchestrator.utils import safe_write_text, write_json
 from runtime_activation_harness import run_runtime_activation_harness
 
 
-SIMULATION_TIMESTAMP = "2026-03-15T00:00:00Z"
+SIMULATION_TIMESTAMP = "2026-03-14 20:00:00 -04:00 (Eastern Time — New York)"
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "runs" / "aie_activation_review_test"
 
 
