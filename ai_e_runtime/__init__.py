@@ -2,6 +2,8 @@ from .agent_router import AgentRouter
 from .artifact_writer import ArtifactWriter
 from .capability_intelligence import CapabilityIntelligenceAssessment, assess_capability_intelligence, assess_mutation_without_capability
 from .capability_registry import CapabilityEvidenceStore, CapabilityRegistry, RuntimeCapability
+from .content_policy import ContentPolicyAssessment, ProjectContentProfile, ensure_project_content_profile, evaluate_content_policy, load_project_content_profile
+from .content_policy import load_profile, save_profile, update_rating_lock, update_rating_target
 from .heartbeat import HeartbeatEmitter
 from .scheduler import Scheduler
 from .conversation_router import ConversationResponse, ConversationRouter
@@ -29,6 +31,7 @@ __all__ = [
     "assess_mutation_without_capability",
     "CapabilityEvidenceStore",
     "CapabilityRegistry",
+    "ContentPolicyAssessment",
     "HeartbeatEmitter",
     "MutationApprovalResult",
     "Scheduler",
@@ -58,7 +61,15 @@ __all__ = [
     "IntakeResult",
     "IntakeRouting",
     "RuntimeCapability",
+    "ProjectContentProfile",
     "approve_mutation_task",
+    "ensure_project_content_profile",
+    "evaluate_content_policy",
+    "load_profile",
+    "load_project_content_profile",
+    "save_profile",
+    "update_rating_lock",
+    "update_rating_target",
     "rollback_first_real_target_grass_proof",
     "run_level_0001_grass_mutation",
 ]

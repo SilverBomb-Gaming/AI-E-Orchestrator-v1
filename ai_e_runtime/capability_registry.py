@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -21,6 +21,18 @@ _DEFAULT_CAPABILITY = {
     "eligible_for_auto": False,
     "evidence_state": "experimental",
     "safety_class": "approval_gated_automation",
+    "content_tags": {
+        "violence_level": "none",
+        "blood_level": "none",
+        "gore_level": "none",
+        "dismemberment": False,
+        "horror_intensity": "none",
+        "language_level": "none",
+        "sexual_content_level": "none",
+        "nudity_level": "none",
+        "substance_reference_level": "none",
+        "gambling_reference_level": "none",
+    },
     "match_terms": ["level_0001", "grass"],
     "match_verbs": ["make", "add", "create", "generate", "place", "build"],
 }
@@ -55,6 +67,7 @@ class RuntimeCapability:
     safety_class: str
     match_terms: List[str]
     match_verbs: List[str]
+    content_tags: Dict[str, Any] = field(default_factory=dict)
     times_attempted: int = 0
     times_passed: int = 0
     last_validation_result: str = "none"
@@ -77,6 +90,7 @@ class RuntimeCapability:
             "eligible_for_auto": self.eligible_for_auto,
             "evidence_state": self.evidence_state,
             "safety_class": self.safety_class,
+            "content_tags": dict(self.content_tags),
             "match_terms": list(self.match_terms),
             "match_verbs": list(self.match_verbs),
             "times_attempted": self.times_attempted,
@@ -103,6 +117,7 @@ class RuntimeCapability:
             eligible_for_auto=bool(payload.get("eligible_for_auto", False)),
             evidence_state=str(payload.get("evidence_state") or "experimental"),
             safety_class=str(payload.get("safety_class") or "approval_gated_automation"),
+            content_tags=dict(payload.get("content_tags") or {}),
             match_terms=[str(item) for item in payload.get("match_terms", [])],
             match_verbs=[str(item) for item in payload.get("match_verbs", [])],
             times_attempted=int(payload.get("times_attempted", 0) or 0),

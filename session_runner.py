@@ -256,6 +256,14 @@ def _accept_interactive_task_request(
             "sandbox_verified": result.routing.sandbox_verified,
             "real_target_verified": result.routing.real_target_verified,
             "rollback_verified": result.routing.rollback_verified,
+            "rating_system": result.routing.rating_system,
+            "rating_target": result.routing.rating_target,
+            "rating_locked": result.routing.rating_locked,
+            "content_policy_match": result.routing.content_policy_match,
+            "content_policy_decision": result.routing.content_policy_decision,
+            "required_rating_upgrade": result.routing.required_rating_upgrade,
+            "requested_content_dimensions": dict(result.routing.requested_content_dimensions or {}),
+            "content_policy_summary": result.routing.content_policy_summary,
             "queue_write_status": "confirmed" if result.created else "existing_task_reused",
         },
     }
@@ -290,8 +298,16 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
             f"Rollback Verified: {_yes_no(result.routing.rollback_verified)}",
             f"Last Validation: {result.routing.last_validation_result or 'none'}",
             f"Last Rollback: {result.routing.last_rollback_result or 'none'}",
+            f"Rating System: {result.routing.rating_system or 'none'}",
+            f"Rating Target: {result.routing.rating_target or 'none'}",
+            f"Rating Locked: {_yes_no(result.routing.rating_locked)}",
+            f"Content Policy Match: {result.routing.content_policy_match or 'none'}",
+            f"Content Policy Decision: {result.routing.content_policy_decision or 'none'}",
+            f"Required Rating Upgrade: {result.routing.required_rating_upgrade or 'none'}",
+            f"Requested Content Dimensions: {_format_content_dimensions(result.routing.requested_content_dimensions)}",
             f"Missing Evidence: {', '.join(result.routing.missing_evidence or []) or 'none'}",
             f"Auto Reason: {result.routing.auto_execution_reason or 'none'}",
+            f"Content Policy Summary: {result.routing.content_policy_summary or 'none'}",
             f"Queue Write: {'confirmed' if result.created else 'existing task reused'}",
             f"Status: {result.queue_entry.get('status', 'pending')}",
             "Plan Steps:",
@@ -341,8 +357,16 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
         f"Rollback Verified: {_yes_no(result.routing.rollback_verified)}",
         f"Last Validation: {result.routing.last_validation_result or 'none'}",
         f"Last Rollback: {result.routing.last_rollback_result or 'none'}",
+        f"Rating System: {result.routing.rating_system or 'none'}",
+        f"Rating Target: {result.routing.rating_target or 'none'}",
+        f"Rating Locked: {_yes_no(result.routing.rating_locked)}",
+        f"Content Policy Match: {result.routing.content_policy_match or 'none'}",
+        f"Content Policy Decision: {result.routing.content_policy_decision or 'none'}",
+        f"Required Rating Upgrade: {result.routing.required_rating_upgrade or 'none'}",
+        f"Requested Content Dimensions: {_format_content_dimensions(result.routing.requested_content_dimensions)}",
         f"Missing Evidence: {', '.join(result.routing.missing_evidence or []) or 'none'}",
         f"Auto Reason: {result.routing.auto_execution_reason or 'none'}",
+        f"Content Policy Summary: {result.routing.content_policy_summary or 'none'}",
         f"Queue Write: {'confirmed' if result.created else 'existing task reused'}",
         f"Target Repo: {result.target_repo}",
         f"Runtime Task Payload: {result.artifacts.runtime_task_payload_path}",
@@ -359,6 +383,12 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
 
 def _yes_no(value: bool) -> str:
     return "yes" if value else "no"
+
+
+def _format_content_dimensions(payload: dict[str, object] | None) -> str:
+    if not payload:
+        return "none"
+    return ", ".join(f"{key}={value}" for key, value in payload.items())
 
 
 def _wait_for_interactive_task_progress(supervisor: Supervisor, acceptance_details: dict[str, object]) -> None:

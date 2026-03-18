@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Mapping
 from orchestrator.config import OrchestratorConfig
 from orchestrator.utils import write_json
 
+from .content_policy import load_profile
 from .scheduler import Scheduler
 from .state_store import StateStore
 
@@ -44,6 +45,9 @@ class RuntimeStateSnapshot:
     steps_remaining: int
     last_generated_plan_summary: str | None
     last_generated_plan_steps: List[str]
+    rating_system: str | None
+    rating_target: str | None
+    rating_locked: bool
 
     def to_payload(self) -> Dict[str, Any]:
         return {
@@ -78,6 +82,9 @@ class RuntimeStateSnapshot:
             "steps_remaining": self.steps_remaining,
             "last_generated_plan_summary": self.last_generated_plan_summary,
             "last_generated_plan_steps": list(self.last_generated_plan_steps),
+            "rating_system": self.rating_system,
+            "rating_target": self.rating_target,
+            "rating_locked": self.rating_locked,
         }
 
 
@@ -111,6 +118,7 @@ class RuntimeState:
         idle_timeout_poll_limit = int(state.get("idle_timeout_poll_limit", 0) or 0)
         next_plan_step = None
         steps_remaining = 0
+        profile = load_profile(self.config)
         if current_plan_id:
             plan_tasks = [task for task in self.scheduler.all_tasks() if str(task.get("plan_id") or "") == str(current_plan_id)]
             done = {"completed", "blocked"}
@@ -175,6 +183,9 @@ class RuntimeState:
             steps_remaining=steps_remaining,
             last_generated_plan_summary=state.get("last_generated_plan_summary"),
             last_generated_plan_steps=[str(item) for item in state.get("last_generated_plan_steps", [])],
+            rating_system=profile.rating_system,
+            rating_target=profile.rating_target,
+            rating_locked=profile.rating_locked,
         )
 
     def _classify_states(
@@ -248,6 +259,14 @@ class RuntimeState:
                     "rollback_verified": bool(task.get("rollback_verified", False)),
                     "last_validation_result": task.get("last_validation_result"),
                     "last_rollback_result": task.get("last_rollback_result"),
+                    "rating_system": task.get("rating_system"),
+                    "rating_target": task.get("rating_target"),
+                    "rating_locked": bool(task.get("rating_locked", False)),
+                    "content_policy_match": task.get("content_policy_match"),
+                    "content_policy_decision": task.get("content_policy_decision"),
+                    "required_rating_upgrade": task.get("required_rating_upgrade"),
+                    "requested_content_dimensions": dict(task.get("requested_content_dimensions") or {}) if isinstance(task.get("requested_content_dimensions"), dict) else {},
+                    "content_policy_summary": task.get("content_policy_summary"),
                     "approval_state": task.get("approval_state"),
                     "plan_id": task.get("plan_id"),
                     "plan_step_index": int(task.get("plan_step_index", 0) or 0),

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable
+from uuid import uuid4
 
 
 def utc_timestamp(compact: bool = True) -> str:
@@ -25,7 +28,16 @@ def slugify(value: str) -> str:
 
 def write_json(path: Path, payload: Dict[str, Any]) -> None:
     ensure_dir(path.parent)
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    temp_path = path.with_suffix(f"{path.suffix}.{uuid4().hex}.tmp")
+    temp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    for attempt in range(10):
+        try:
+            os.replace(temp_path, path)
+            return
+        except PermissionError:
+            if attempt == 9:
+                raise
+            time.sleep(0.01)
 
 
 def read_json(path: Path, default: Dict[str, Any] | None = None) -> Dict[str, Any]:

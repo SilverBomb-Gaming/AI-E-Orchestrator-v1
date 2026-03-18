@@ -151,6 +151,11 @@ def test_task_intake_routes_supported_grass_mutation_into_approval_required_lane
     assert result.routing.execution_decision == "sandbox_first"
     assert result.routing.recommended_action == "sandbox_first"
     assert result.routing.sandbox_first_required is True
+    assert result.routing.rating_system == "ESRB"
+    assert result.routing.rating_target == "M"
+    assert result.routing.content_policy_match == "fits_rating"
+    assert result.routing.content_policy_decision == "allowed"
+    assert result.routing.required_rating_upgrade is None
     assert runtime_payload["runtime_task"]["approval_state"] == "awaiting_approval"
     assert runtime_payload["runtime_task"]["target_scene"] == "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
 
@@ -187,6 +192,10 @@ def test_task_intake_routes_supported_remove_grass_mutation_into_approval_requir
     assert result.routing.execution_decision == "sandbox_first"
     assert result.routing.recommended_action == "sandbox_first"
     assert result.routing.sandbox_first_required is True
+    assert result.routing.rating_system == "ESRB"
+    assert result.routing.rating_target == "M"
+    assert result.routing.content_policy_match == "fits_rating"
+    assert result.routing.content_policy_decision == "allowed"
     assert runtime_payload["runtime_task"]["approval_state"] == "awaiting_approval"
     assert runtime_payload["runtime_task"]["target_level"] == "LEVEL_0001"
     assert runtime_payload["runtime_task"]["target_scene"] == "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
@@ -219,6 +228,33 @@ def test_task_intake_auto_promotes_reference_grass_capability_when_reference_evi
     assert runtime_payload["runtime_task"]["auto_execution_enabled"] is True
 
 
+def test_task_intake_blocks_mutation_that_exceeds_locked_project_rating(tmp_path):
+    config = _make_config(tmp_path / "blocked_content_policy_mutation")
+    _write_locked_content_profile(config, rating_system="ESRB", rating_target="T")
+    _write_finisher_capability_contract(config)
+    intake = ConversationalTaskIntake(config)
+
+    result = intake.accept_message(
+        "add finisher system for level_0001",
+        session_id="operator-session-rating-block",
+        target_repo="E:/AI projects 2025/BABYLON VER 2",
+    )
+
+    runtime_payload = json.loads(result.artifacts.runtime_task_payload_path.read_text(encoding="utf-8"))
+
+    assert result.queue_entry["status"] == "blocked"
+    assert result.queue_entry["approval_state"] == "blocked"
+    assert result.routing.capability_id == "level_0001_finisher_system"
+    assert result.routing.content_policy_match == "exceeds_rating"
+    assert result.routing.content_policy_decision == "blocked"
+    assert result.routing.required_rating_upgrade == "M"
+    assert result.routing.execution_decision == "blocked"
+    assert result.routing.recommended_action == "blocked"
+    assert runtime_payload["runtime_task"]["approval_state"] == "blocked"
+    assert runtime_payload["runtime_task"]["requested_content_dimensions"]["gore_level"] == "extreme"
+    assert runtime_payload["runtime_task"]["requested_content_dimensions"]["dismemberment"] is True
+
+
 def _write_grass_capability_contracts(config: OrchestratorConfig) -> None:
     capabilities_dir = config.contracts_dir / "capabilities"
     capabilities_dir.mkdir(parents=True, exist_ok=True)
@@ -237,6 +273,18 @@ def _write_grass_capability_contracts(config: OrchestratorConfig) -> None:
                 "eligible_for_auto": False,
                 "evidence_state": "experimental",
                 "safety_class": "approval_gated_automation",
+                "content_tags": {
+                    "violence_level": "none",
+                    "blood_level": "none",
+                    "gore_level": "none",
+                    "dismemberment": False,
+                    "horror_intensity": "none",
+                    "language_level": "none",
+                    "sexual_content_level": "none",
+                    "nudity_level": "none",
+                    "substance_reference_level": "none",
+                    "gambling_reference_level": "none",
+                },
                 "match_terms": ["level_0001", "grass"],
                 "match_verbs": ["make", "add", "create", "generate", "place", "build"],
             },
@@ -259,8 +307,76 @@ def _write_grass_capability_contracts(config: OrchestratorConfig) -> None:
                 "eligible_for_auto": False,
                 "evidence_state": "experimental",
                 "safety_class": "approval_gated_automation",
+                "content_tags": {
+                    "violence_level": "none",
+                    "blood_level": "none",
+                    "gore_level": "none",
+                    "dismemberment": False,
+                    "horror_intensity": "none",
+                    "language_level": "none",
+                    "sexual_content_level": "none",
+                    "nudity_level": "none",
+                    "substance_reference_level": "none",
+                    "gambling_reference_level": "none",
+                },
                 "match_terms": ["level_0001", "grass"],
                 "match_verbs": ["remove", "delete", "clear"],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_locked_content_profile(config: OrchestratorConfig, *, rating_system: str, rating_target: str) -> None:
+    content_policy_dir = config.contracts_dir / "content_policy"
+    content_policy_dir.mkdir(parents=True, exist_ok=True)
+    (content_policy_dir / "project_content_profile.json").write_text(
+        json.dumps(
+            {
+                "content_mode": "GAME_DEV",
+                "rating_system": rating_system,
+                "rating_target": rating_target,
+                "rating_locked": True,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_finisher_capability_contract(config: OrchestratorConfig) -> None:
+    capabilities_dir = config.contracts_dir / "capabilities"
+    capabilities_dir.mkdir(parents=True, exist_ok=True)
+    (capabilities_dir / "level_0001_finisher_system.json").write_text(
+        json.dumps(
+            {
+                "capability_id": "level_0001_finisher_system",
+                "title": "LEVEL_0001 finisher system",
+                "intent": "mutate",
+                "target_level": "LEVEL_0001",
+                "target_scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity",
+                "requested_execution_lane": "approval_required_mutation",
+                "handler_name": "level_0001_finisher_handler",
+                "agent_type": "level_0001_grass_mutation_agent",
+                "approval_required": True,
+                "eligible_for_auto": False,
+                "evidence_state": "experimental",
+                "safety_class": "approval_gated_automation",
+                "content_tags": {
+                    "violence_level": "intense",
+                    "blood_level": "intense",
+                    "gore_level": "extreme",
+                    "dismemberment": True,
+                    "horror_intensity": "none",
+                    "language_level": "none",
+                    "sexual_content_level": "none",
+                    "nudity_level": "none",
+                    "substance_reference_level": "none",
+                    "gambling_reference_level": "none"
+                },
+                "match_terms": ["level_0001", "finisher"],
+                "match_verbs": ["add", "create", "build"],
             },
             indent=2,
         ),

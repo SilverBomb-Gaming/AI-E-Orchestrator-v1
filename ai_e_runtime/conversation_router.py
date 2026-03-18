@@ -39,8 +39,14 @@ class ConversationRouter:
         "last artifact",
         "pause polling",
         "resume polling",
+        "get rating profile",
         "exit",
         "quit",
+    )
+    CONTROL_COMMAND_PREFIXES = (
+        "set_rating_profile",
+        "get_rating_profile",
+        "set_rating_lock",
     )
 
     _STATUS_TOKENS = (
@@ -115,7 +121,7 @@ class ConversationRouter:
 
     def is_control_command(self, prompt: str) -> bool:
         normalized = self._normalize(prompt)
-        return normalized in self.CONTROL_COMMANDS
+        return normalized in self.CONTROL_COMMANDS or any(normalized.startswith(prefix) for prefix in self.CONTROL_COMMAND_PREFIXES)
 
     def classify_prompt(self, prompt: str, *, task_request_classifier: Any | None = None) -> str:
         if self.is_control_command(prompt):

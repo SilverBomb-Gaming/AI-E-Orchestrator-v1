@@ -98,6 +98,14 @@ def test_runtime_state_queue_tasks_include_capability_maturity_fields(tmp_path):
                     "rollback_verified": True,
                     "last_validation_result": "passed",
                     "last_rollback_result": "passed",
+                    "rating_system": "ESRB",
+                    "rating_target": "M",
+                    "rating_locked": True,
+                    "content_policy_match": "fits_rating",
+                    "content_policy_decision": "allowed",
+                    "required_rating_upgrade": None,
+                    "requested_content_dimensions": {},
+                    "content_policy_summary": "Requested content fits the ESRB M project target.",
                 }
             ]
         },
@@ -122,6 +130,11 @@ def test_runtime_state_queue_tasks_include_capability_maturity_fields(tmp_path):
     assert queue_tasks[0]["rollback_verified"] is True
     assert queue_tasks[0]["last_validation_result"] == "passed"
     assert queue_tasks[0]["last_rollback_result"] == "passed"
+    assert queue_tasks[0]["rating_system"] == "ESRB"
+    assert queue_tasks[0]["rating_target"] == "M"
+    assert queue_tasks[0]["rating_locked"] is True
+    assert queue_tasks[0]["content_policy_match"] == "fits_rating"
+    assert queue_tasks[0]["content_policy_decision"] == "allowed"
 
 
 def _make_config(tmp_path) -> OrchestratorConfig:

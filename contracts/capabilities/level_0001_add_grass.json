@@ -11,6 +11,18 @@
   "eligible_for_auto": false,
   "evidence_state": "experimental",
   "safety_class": "approval_gated_automation",
+  "content_tags": {
+    "violence_level": "none",
+    "blood_level": "none",
+    "gore_level": "none",
+    "dismemberment": false,
+    "horror_intensity": "none",
+    "language_level": "none",
+    "sexual_content_level": "none",
+    "nudity_level": "none",
+    "substance_reference_level": "none",
+    "gambling_reference_level": "none"
+  },
   "match_terms": [
     "level_0001",
     "grass"

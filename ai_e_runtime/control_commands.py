@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
 
+from .content_policy import load_profile, update_rating_lock, update_rating_target
 from .runtime_state import RuntimeState
 from .supervisor import Supervisor
 
@@ -35,9 +36,15 @@ class ControlCommandHandler:
         "last artifact": "show_last_artifact",
         "pause polling": "pause_polling",
         "resume polling": "resume_polling",
+        "get rating profile": "get_rating_profile",
         "exit": "exit",
         "quit": "exit",
     }
+    COMMAND_PREFIXES = (
+        "set_rating_profile",
+        "get_rating_profile",
+        "set_rating_lock",
+    )
 
     def __init__(self, supervisor: Supervisor, runtime_state: RuntimeState) -> None:
         self.supervisor = supervisor
@@ -50,6 +57,9 @@ class ControlCommandHandler:
         normalized = " ".join(str(prompt or "").strip().lower().split())
         if not normalized:
             return None
+        for prefix in self.COMMAND_PREFIXES:
+            if normalized.startswith(prefix):
+                return prefix
         return self.COMMAND_ALIASES.get(normalized)
 
     def execute(self, prompt: str, *, last_acceptance: Dict[str, Any] | None = None) -> ControlCommandResult:
@@ -74,6 +84,13 @@ class ControlCommandHandler:
             if not changed:
                 body = "Queue polling was already active. Pending work can continue on the next scheduler cycle."
             return ControlCommandResult(title="AI-E POLLING RESUMED", body=body)
+        if command == "get_rating_profile":
+            profile = load_profile(self.supervisor.orchestrator_config)
+            return ControlCommandResult(title="AI-E RATING PROFILE", body=self._rating_profile_text(profile, confirmation=None))
+        if command == "set_rating_profile":
+            return self._set_rating_profile(prompt)
+        if command == "set_rating_lock":
+            return self._set_rating_lock(prompt)
         if command == "exit":
             self.supervisor.request_stop()
             return ControlCommandResult(
@@ -99,6 +116,9 @@ class ControlCommandHandler:
                 "show last artifact",
                 "pause polling",
                 "resume polling",
+                "get_rating_profile",
+                "set_rating_profile <rating>",
+                "set_rating_lock <true|false>",
                 "exit",
                 "",
                 "Examples:",
@@ -107,6 +127,9 @@ class ControlCommandHandler:
                 "resume polling",
                 "show last acceptance",
                 "show last artifact",
+                "get_rating_profile",
+                "set_rating_profile T",
+                "set_rating_lock false",
             ]
         )
 
@@ -140,8 +163,16 @@ class ControlCommandHandler:
             f"Rollback Verified: {'yes' if bool(last_acceptance.get('rollback_verified', False)) else 'no'}",
             f"Last Validation: {last_acceptance.get('last_validation_result', 'none')}",
             f"Last Rollback: {last_acceptance.get('last_rollback_result', 'none')}",
+            f"Rating System: {last_acceptance.get('rating_system', 'none')}",
+            f"Rating Target: {last_acceptance.get('rating_target', 'none')}",
+            f"Rating Locked: {'yes' if bool(last_acceptance.get('rating_locked', False)) else 'no'}",
+            f"Content Policy Match: {last_acceptance.get('content_policy_match', 'none')}",
+            f"Content Policy Decision: {last_acceptance.get('content_policy_decision', 'none')}",
+            f"Required Rating Upgrade: {last_acceptance.get('required_rating_upgrade', 'none')}",
+            f"Requested Content Dimensions: {self._format_content_dimensions(last_acceptance.get('requested_content_dimensions'))}",
             f"Missing Evidence: {', '.join(last_acceptance.get('missing_evidence', []) or []) or 'none'}",
             f"Auto Reason: {last_acceptance.get('auto_execution_reason', 'none')}",
+            f"Content Policy Summary: {last_acceptance.get('content_policy_summary', 'none')}",
             f"Queue Write: {last_acceptance.get('queue_write_status', 'unknown')}",
             f"Runtime Task Payload: {last_acceptance.get('runtime_task_payload_path', 'unknown')}",
             f"Request Payload: {last_acceptance.get('request_payload_path', 'unknown')}",
@@ -155,6 +186,11 @@ class ControlCommandHandler:
             lines.extend(f"{index}. {title}" for index, title in enumerate(step_titles, start=1))
         return "\n".join(lines)
 
+    def _format_content_dimensions(self, payload: Any) -> str:
+        if not isinstance(payload, dict) or not payload:
+            return "none"
+        return ", ".join(f"{key}={value}" for key, value in payload.items())
+
     def _last_artifact_text(self) -> str:
         snapshot = self.runtime_state.get_snapshot()
         latest_artifact = snapshot.last_artifact_path or snapshot.artifact_output_path
@@ -164,6 +200,53 @@ class ControlCommandHandler:
                 f"Artifact Output Directory: {snapshot.artifact_output_path}",
             ]
         )
+
+    def _set_rating_profile(self, prompt: str) -> ControlCommandResult:
+        parts = str(prompt or "").strip().split()
+        if len(parts) != 2:
+            return ControlCommandResult(
+                title="AI-E RATING PROFILE ERROR",
+                body="Usage: set_rating_profile <rating>",
+            )
+        rating_target = parts[1]
+        try:
+            profile = update_rating_target(self.supervisor.orchestrator_config, rating_target)
+        except ValueError as exc:
+            return ControlCommandResult(title="AI-E RATING PROFILE ERROR", body=str(exc))
+        confirmation = f"Rating profile updated: {profile.rating_system} -> {profile.rating_target} (locked: {'true' if profile.rating_locked else 'false'})"
+        return ControlCommandResult(title="AI-E RATING PROFILE UPDATED", body=self._rating_profile_text(profile, confirmation=confirmation))
+
+    def _set_rating_lock(self, prompt: str) -> ControlCommandResult:
+        parts = str(prompt or "").strip().split()
+        if len(parts) != 2:
+            return ControlCommandResult(
+                title="AI-E RATING LOCK ERROR",
+                body="Usage: set_rating_lock <true|false>",
+            )
+        raw = parts[1].strip().lower()
+        if raw not in {"true", "false"}:
+            return ControlCommandResult(
+                title="AI-E RATING LOCK ERROR",
+                body="Lock value must be true or false.",
+            )
+        profile = update_rating_lock(self.supervisor.orchestrator_config, raw == "true")
+        confirmation = f"Rating lock updated: {profile.rating_system} {profile.rating_target} (locked: {'true' if profile.rating_locked else 'false'})"
+        return ControlCommandResult(title="AI-E RATING LOCK UPDATED", body=self._rating_profile_text(profile, confirmation=confirmation))
+
+    def _rating_profile_text(self, profile: Any, *, confirmation: str | None) -> str:
+        lines = []
+        if confirmation:
+            lines.append(confirmation)
+            lines.append("")
+        lines.extend(
+            [
+                f"Rating System: {profile.rating_system}",
+                f"Rating Target: {profile.rating_target}",
+                f"Rating Locked: {'yes' if profile.rating_locked else 'no'}",
+                "New tasks will use the updated rating profile immediately.",
+            ]
+        )
+        return "\n".join(lines)
 
 
 __all__ = ["ControlCommandHandler", "ControlCommandResult"]

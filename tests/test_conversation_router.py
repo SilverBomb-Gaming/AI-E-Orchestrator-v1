@@ -324,6 +324,10 @@ def test_interactive_mode_reports_approval_required_lane_for_freeform_grass_requ
     assert "Trust Score: 0" in output
     assert "Policy State: test_only" in output
     assert "Recommended Action: sandbox_first" in output
+    assert "Rating System: ESRB" in output
+    assert "Rating Target: M" in output
+    assert "Content Policy Match: fits_rating" in output
+    assert "Content Policy Decision: allowed" in output
 
 
 def test_interactive_mode_reports_approval_required_mutation_lane_for_supported_grass_request(tmp_path, monkeypatch):
@@ -364,6 +368,10 @@ def test_interactive_mode_reports_approval_required_mutation_lane_for_supported_
     assert "Trust Score: 0" in output
     assert "Policy State: test_only" in output
     assert "Recommended Action: sandbox_first" in output
+    assert "Rating System: ESRB" in output
+    assert "Rating Target: M" in output
+    assert "Content Policy Match: fits_rating" in output
+    assert "Content Policy Decision: allowed" in output
     assert "Status: needs_approval" in output
 
 
