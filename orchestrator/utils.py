@@ -32,7 +32,7 @@ def read_json(path: Path, default: Dict[str, Any] | None = None) -> Dict[str, An
     if not path.exists():
         return _clone_default(default)
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = path.read_text(encoding="utf-8-sig")
     except OSError:
         return _clone_default(default)
     if not raw.strip():

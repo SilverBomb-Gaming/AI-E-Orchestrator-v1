@@ -1,0 +1,52 @@
+{
+  "capabilities": {
+    "level_0001_add_grass": {
+      "capability_id": "level_0001_add_grass",
+      "handler_name": "level_0001_grass_handler",
+      "safety_class": "approval_gated_automation",
+      "times_attempted": 4,
+      "times_passed": 4,
+      "last_validation_result": "passed",
+      "artifact_requirements_met": true,
+      "eligible_for_auto": false,
+      "requires_approval": true,
+      "evidence_state": "rollback_verified",
+      "notes": "Bounded grass mutation validated successfully with marker AIE_LEVEL_0001_GrassPatch_001.",
+      "last_rollback_result": "passed",
+      "real_target_verified": true,
+      "rollback_verified": true,
+      "sandbox_verified": true,
+      "evidence_progression": [
+        "experimental",
+        "sandbox_verified",
+        "real_target_verified",
+        "rollback_verified"
+      ],
+      "validation_history_summary": "attempts=4; passed=4; last_validation_result=passed; sandbox_verified=yes; real_target_verified=yes",
+      "rollback_history_summary": "last_rollback_result=passed; rollback_verified=yes"
+    },
+    "level_0001_remove_grass": {
+      "capability_id": "level_0001_remove_grass",
+      "handler_name": "level_0001_remove_grass_handler",
+      "safety_class": "approval_gated_automation",
+      "times_attempted": 3,
+      "times_passed": 3,
+      "last_validation_result": "passed",
+      "last_rollback_result": "none",
+      "artifact_requirements_met": true,
+      "eligible_for_auto": false,
+      "requires_approval": true,
+      "evidence_state": "sandbox_verified",
+      "sandbox_verified": true,
+      "real_target_verified": false,
+      "rollback_verified": false,
+      "evidence_progression": [
+        "experimental",
+        "sandbox_verified"
+      ],
+      "validation_history_summary": "attempts=3; passed=3; last_validation_result=passed; sandbox_verified=yes; real_target_verified=no",
+      "rollback_history_summary": "last_rollback_result=none; rollback_verified=no",
+      "notes": "Bounded grass removal validated successfully for marker AIE_LEVEL_0001_GrassPatch_001."
+    }
+  }
+}

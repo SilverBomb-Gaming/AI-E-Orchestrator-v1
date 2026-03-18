@@ -83,6 +83,120 @@ This Option A foundation now reuses the proven zombie prefab pipeline, keeping t
 ## Nightly Automation
 Use `scripts/run_nightly.ps1` from Windows Task Scheduler to launch the orchestrator with the `--nightly` flag. The runner processes every pending task in `backlog/queue.json`, rotating artifacts by timestamp without overwriting prior evidence.
 
+## Persistent Supervisor Runtime
+The repo now includes a minimal persistent runtime loop under `ai_e_runtime/` for true continuous background sessions. This path is intentionally separate from the existing single-pass runner so it can supervise queue work for bounded 2-hour or overnight windows without rewriting the current execution stack.
+
+- `ai_e_runtime/supervisor.py` owns the long-lived loop, session timing, and stop conditions.
+- `ai_e_runtime/scheduler.py` reads `backlog/queue.json`, selects the next task by priority, requeues retryable failures, and blocks tasks that exhaust retries.
+- `ai_e_runtime/state_store.py` persists resumable session state in `runs/<session_id>/session_state.json`.
+- `ai_e_runtime/heartbeat.py` appends `SESSION_HEARTBEAT` records to `logs/session_heartbeat.log`.
+- `ai_e_runtime/artifact_writer.py` stores per-task results under `runs/<session_id>/artifacts/`.
+- `ai_e_runtime/agent_router.py` provides the current runtime agent interface (`copilot_coder_agent`, `read_only_inspector_agent`, `validator_agent`, `unity_control_agent`, `artifact_summarizer_agent`).
+- `ai_e_runtime/task_intake.py` converts plain-language operator messages into deterministic runtime payloads plus pending queue entries under `contracts/intake/`.
+- `ai_e_runtime/planner.py` decomposes planning-capable operator prompts into deterministic rule-based plan steps.
+- `ai_e_runtime/planner_task_graph.py` turns planner output into an ordered runtime task graph with explicit dependencies.
+
+Manual launch examples:
+
+```powershell
+.\.venv-2\Scripts\python.exe .\session_runner.py --session-limit-seconds 7200
+```
+
+```powershell
+.\.venv-2\Scripts\python.exe .\session_runner.py --session-id overnight_001 --session-limit-seconds 28800 --resume
+```
+
+Runtime outputs to inspect after launch:
+
+- `runs/<session_id>/session_state.json`
+- `runs/<session_id>/session_summary.json`
+- `runs/<session_id>/artifacts/`
+- `logs/session_heartbeat.log`
+
+Manual intake example:
+
+```powershell
+.\.venv-2\Scripts\python.exe .\scripts\intake_task.py "Stabilize LEVEL_0001 zombie animation, KBM controls, and weapon bootstrap."
+```
+
+The intake command writes request/task payloads under `contracts/intake/`, appends a `pending` queue entry to `backlog/queue.json`, and the supervisor will pick it up on the next poll without manual queue edits.
+
+## AI-E Command Center Foundation
+The runtime now exposes the first conversational Command Center foundation without introducing a graphical UI.
+
+- `ai_e_runtime/runtime_state.py` provides a programmatic runtime state interface for session id, elapsed time, current task, last started task, last completed task, queue contents, failed tasks, heartbeat timestamp, and artifact output path.
+- `ai_e_runtime/conversation_router.py` answers operator-style status questions such as `what are you doing right now`, `show queue`, `what task started`, `what task completed`, `why are you idle`, and `what should I do next`.
+- `ai_e_runtime/control_commands.py` executes direct operator control commands such as `help`, `clear`, `show last acceptance`, `show last artifact`, `pause polling`, `resume polling`, and `exit` without routing them into intake or mutating the queue.
+- `session_runner.py --interactive` runs a terminal-based conversational mode while the supervisor loop continues processing queue work, and it now accepts direct natural-language TASK_REQUEST input without requiring `scripts/intake_task.py`.
+- `runs/<session_id>/runtime_status.json` is updated on each heartbeat and task transition so future UI layers can consume a stable structured snapshot.
+
+Example interactive command:
+
+```powershell
+.\.venv-2\Scripts\python.exe .\session_runner.py --interactive --session-limit-seconds 7200
+```
+
+Example live intake while the supervisor is already running:
+
+```powershell
+.\.venv-2\Scripts\python.exe .\scripts\intake_task.py --session-id live_demo --simulated-delay-seconds 4 "Stabilize LEVEL_0001 zombie animation, KBM controls, and weapon bootstrap."
+```
+
+Example direct interactive task request without a separate intake command:
+
+```text
+stabilize LEVEL_0001 zombie animation, KBM controls, and weapon bootstrap
+```
+
+The interactive runtime classifies that input as a `TASK_REQUEST`, generates the request/task graph/runtime payloads, appends the queue item automatically, and returns an `AI-E TASK ACCEPTED` response before the supervisor picks it up on the next poll.
+
+Accepted intake requests now report their routing decision explicitly. Operator-facing acceptance output includes the requested intent, resolved intent, requested lane, current execution lane, whether a downgrade occurred, whether approval is required, whether the current lane is mutation-capable, and whether the queue write was confirmed. Mutation-style prompts such as `make grass for level_0001` now remain mechanically reliable but are reported honestly when they are downgraded to `read_only_inspection` because no write-capable handler exists yet.
+
+The first bounded write-capable mutation lane now exists for `make grass for level_0001`. When the capability registry matches `level_0001_add_grass`, intake routes the request to `approval_required_mutation` instead of downgrading it, records `needs_approval` until an operator explicitly approves the queue task, and then executes a bounded scene mutation that inserts a named grass patch marker into `Assets/AI_E_TestScenes/MinimalPlayableArena.unity`. Evidence for this capability is tracked in `contracts/capabilities/evidence.json` so it can earn broader automation only after repeated safe validated runs.
+
+By default, the supervisor now terminates after a short empty-queue idle grace window instead of burning the full session budget with no active work. The default policy is `30` idle seconds or `3` consecutive idle polls, whichever comes first, and the final stop reason is recorded as `queue_empty_idle_timeout`. Override the defaults with `--idle-timeout-seconds` and `--idle-timeout-poll-limit`, or set either value to `0` to disable that specific threshold.
+
+Operator interrupts are now routed through the normal supervisor shutdown path. `CTRL+C` or `CTRL+BREAK` requests a clean stop, records `stop_reason=operator_interrupt`, writes the final runtime/session artifacts, and returns exit code `130` instead of leaving the session state stuck at `running`.
+
+Example composite planning request:
+
+```text
+Fix LEVEL_0001 zombie animation, weapon bootstrap, and KBM controls
+```
+
+The runtime now recognizes that as a planning-capable composite request, generates a deterministic plan, writes a multi-node task graph, appends multiple ordered queue entries with dependencies, and returns an `AI-E PLAN ACCEPTED` response with the generated steps.
+
+Autonomous gameplay iteration prep is now modeled, but not yet live as a mutation-capable runtime path. The current runtime still defaults to bounded read-only execution; the new prep layer adds a formal 2-hour session spec under `contracts/session_specs/`, a world-interaction testing model in `ai_e_runtime/world_interaction_test_model.py`, a deterministic follow-up task evolver in `ai_e_runtime/followup_task_evolver.py`, and planner support for front-loaded autonomous gameplay iteration prompts.
+
+New conversational plan status questions:
+
+```text
+what plan did you generate
+what step is running
+what step is next
+how many steps are left
+```
+
+Supported interactive control commands:
+
+```text
+help
+clear
+show last acceptance
+show last artifact
+pause polling
+resume polling
+exit
+```
+
+When polling is paused, heartbeats continue and the runtime remains alive, but no queued work starts until polling is resumed.
+
+Future UI integration path:
+
+- query runtime state through `RuntimeState`
+- route natural-language operator prompts through `ConversationRouter`
+- render `runtime_status.json` in a graphical Command Center later without changing the supervisor loop
+
 ## Policy Engine
 Every run produces a policy decision alongside build/test/diff/log gates. The policy layer enforces network bans, patch size limits, forbidden path lists, and agent-profile permissions before a run can advance:
 - `policy.verdict` is always `ALLOW`, `ASK`, or `BLOCK` and is mirrored into `gate_report.json`, `summary.md`, and `run_meta.json`.
@@ -171,6 +285,7 @@ The current remote-work phase is architecture-only and intentionally avoids game
 - `orchestrator/request_schema_loader.py` validates conversational request contracts and loads them into typed architecture objects.
 - `orchestrator/planner_stub.py` and `orchestrator/task_graph_emitter.py` provide a non-runtime planning stub that emits deterministic task-graph contracts only.
 - `orchestrator/report_contract.py` provides additive formatter and validator helpers for the canonical operator-facing report order.
+- `orchestrator/chat_gateway_interface.py`, `orchestrator/planner_agent_interface.py`, `orchestrator/agent_execution_interface.py`, and `orchestrator/artifact_store_interface.py` define interface-only placeholders for the future AI-E agent loop without introducing runtime execution.
 
 These assets are documentation and design scaffolding only. They are not wired into the live runner yet, so baseline orchestrator behavior remains unchanged.
 

@@ -1,0 +1,23 @@
+{
+  "capability_id": "level_0001_remove_grass",
+  "title": "LEVEL_0001 remove grass",
+  "intent": "mutate",
+  "target_level": "LEVEL_0001",
+  "target_scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity",
+  "requested_execution_lane": "approval_required_mutation",
+  "handler_name": "level_0001_remove_grass_handler",
+  "agent_type": "level_0001_grass_mutation_agent",
+  "approval_required": true,
+  "eligible_for_auto": false,
+  "evidence_state": "experimental",
+  "safety_class": "approval_gated_automation",
+  "match_terms": [
+    "level_0001",
+    "grass"
+  ],
+  "match_verbs": [
+    "remove",
+    "delete",
+    "clear"
+  ]
+}

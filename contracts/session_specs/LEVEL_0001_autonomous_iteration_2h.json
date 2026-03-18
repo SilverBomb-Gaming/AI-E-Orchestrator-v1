@@ -1,0 +1,27 @@
+{
+  "session_spec_id": "LEVEL_0001_AUTONOMOUS_ITERATION_2H",
+  "session_limit_seconds": 7200,
+  "max_runs": 12,
+  "target_scene": "Assets/AI_E_TestScenes/MinimalPlayableArena.unity",
+  "target_level": "LEVEL_0001",
+  "operator_objective": "Front-load one composite gameplay instruction, then let AI-E iteratively evolve LEVEL_0001 within the session budget through implementation, runtime testing, world interaction review, and follow-up task generation.",
+  "implementation_allowed": true,
+  "runtime_testing_required": true,
+  "player_control_testing_required": true,
+  "followup_task_evolution_enabled": true,
+  "artifact_requirements": [
+    "session_plan.json",
+    "implementation_log.json",
+    "runtime_test_report.json",
+    "world_interaction_log.json",
+    "interaction_review.md",
+    "followup_tasks.json",
+    "iteration_summary.md"
+  ],
+  "safety_boundaries": {
+    "mutation_execution_not_yet_live": true,
+    "unity_control_not_yet_live": true,
+    "player_control_not_yet_live": true,
+    "followup_evolution_is_rule_based": true
+  }
+}

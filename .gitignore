@@ -7,11 +7,17 @@ reports/
 
 # Queue backups
 backlog/*.bak.*
+contracts/intake/
 
 # Temporary env diagnostics
 env-check.txt
 env-path-exists.txt
 temp_envtest.ps1
+.tmp/
+temp_*.txt
+temp_*.json
+.status_entity_run_output.json
+status_entity_run_output.json
 
 # Python environments
 .venv*

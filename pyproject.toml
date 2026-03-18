@@ -21,7 +21,7 @@ dev = [
 
 [tool.setuptools]
 package-dir = {"" = ""}
-packages = ["orchestrator"]
+packages = ["orchestrator", "ai_e_runtime"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
