@@ -7,9 +7,11 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .autonomous_decision import DecisionRuntimeContext, evaluate_autonomous_decision
 from .capability_intelligence import assess_capability_intelligence, assess_mutation_without_capability
 from .capability_registry import CapabilityRegistry, RuntimeCapability
 from .content_policy import ensure_project_content_profile, evaluate_content_policy, load_project_content_profile
+from .progress import phase_payload
 from orchestrator.architecture_blueprint import ConversationalRequest
 from orchestrator.config import OrchestratorConfig
 from orchestrator.request_schema_loader import validate_request_payload
@@ -84,6 +86,18 @@ class IntakeRouting:
     required_rating_upgrade: str | None = None
     requested_content_dimensions: Dict[str, Any] | None = None
     content_policy_summary: str | None = None
+    decision: str | None = None
+    decision_reason: str | None = None
+    decision_summary: str | None = None
+    decision_auto_execute: bool = False
+    decision_approval_required: bool = False
+    decision_sandbox_first: bool = False
+    decision_review_required: bool = False
+    decision_blocked: bool = False
+    content_policy_block: bool = False
+    capability_supported: bool = False
+    promotion_basis: str | None = None
+    fail_closed_reason: str | None = None
 
     def to_payload(self) -> Dict[str, Any]:
         return {
@@ -128,6 +142,18 @@ class IntakeRouting:
             "required_rating_upgrade": self.required_rating_upgrade,
             "requested_content_dimensions": dict(self.requested_content_dimensions or {}),
             "content_policy_summary": self.content_policy_summary,
+            "decision": self.decision,
+            "decision_reason": self.decision_reason,
+            "decision_summary": self.decision_summary,
+            "decision_auto_execute": self.decision_auto_execute,
+            "decision_approval_required": self.decision_approval_required,
+            "decision_sandbox_first": self.decision_sandbox_first,
+            "decision_review_required": self.decision_review_required,
+            "decision_blocked": self.decision_blocked,
+            "content_policy_block": self.content_policy_block,
+            "capability_supported": self.capability_supported,
+            "promotion_basis": self.promotion_basis,
+            "fail_closed_reason": self.fail_closed_reason,
         }
 
 
@@ -224,8 +250,10 @@ class ConversationalTaskIntake:
         if not normalized_prompt:
             raise ValueError("operator message must not be empty")
 
+        self._record_session_progress(session_id, **phase_payload("intake"))
         resolved_target_repo = target_repo or self._derive_target_repo(normalized_prompt)
-        routing = self._resolve_intake_routing(normalized_prompt)
+        routing = self._resolve_intake_routing(normalized_prompt, session_id=session_id)
+        self._record_session_progress(session_id, **phase_payload("policy_check"))
         task_type = self._derive_task_type(normalized_prompt, routing=routing)
         request_id = self._derive_request_id(normalized_prompt, resolved_target_repo, task_type)
         title = self._derive_title(normalized_prompt)
@@ -263,12 +291,26 @@ class ConversationalTaskIntake:
         queue_entries: List[Dict[str, Any]] = []
         created = False
         single_step = len(task_graph.nodes) == 1
-        queue_status = "blocked" if routing.content_policy_decision == "blocked" else (
-            "needs_approval" if routing.approval_required and routing.execution_lane == "approval_required_mutation" else "pending"
+        queue_status = "blocked" if routing.decision == "block" else (
+            "needs_approval" if routing.decision in {"require_approval", "sandbox_first", "require_review"} and routing.execution_lane == "approval_required_mutation" else "pending"
         )
-        auto_execution_enabled = routing.execution_decision == "auto_execute"
+        auto_execution_enabled = routing.auto_execution_enabled and routing.decision == "auto_execute"
         approval_state = "blocked" if queue_status == "blocked" else (
             "awaiting_approval" if queue_status == "needs_approval" else ("auto_approved" if auto_execution_enabled else "not_required")
+        )
+        waiting_reason = None
+        blocked_reason = None
+        if queue_status == "needs_approval":
+            waiting_reason = "Waiting for operator approval."
+        elif queue_status == "blocked":
+            blocked_reason = routing.content_policy_summary or "Blocked before execution."
+        self._record_session_progress(
+            session_id,
+            **phase_payload(
+                "approval_auto_decision",
+                waiting_reason=waiting_reason,
+                blocked_reason=blocked_reason,
+            ),
         )
         approved_by = "system_intelligence_v1" if auto_execution_enabled else None
         approved_at = utc_timestamp(compact=False) if auto_execution_enabled else None
@@ -289,7 +331,7 @@ class ConversationalTaskIntake:
                     "task_type": task_type if single_step else node.task_type,
                     "target_repo": resolved_target_repo,
                     "agent_type": routing.handler_name and "level_0001_grass_mutation_agent" or "read_only_inspector_agent",
-                    "execution_mode": routing.execution_lane if routing.mutation_capable else node.execution_mode,
+                    "execution_mode": routing.execution_lane if routing.requested_intent == "mutate" or routing.mutation_capable else node.execution_mode,
                     "requested_intent": routing.requested_intent,
                     "resolved_intent": routing.resolved_intent,
                     "requested_execution_lane": routing.requested_execution_lane,
@@ -329,6 +371,18 @@ class ConversationalTaskIntake:
                     "required_rating_upgrade": routing.required_rating_upgrade,
                     "requested_content_dimensions": dict(routing.requested_content_dimensions or {}),
                     "content_policy_summary": routing.content_policy_summary,
+                    "decision": routing.decision,
+                    "decision_reason": routing.decision_reason,
+                    "decision_summary": routing.decision_summary,
+                    "decision_auto_execute": routing.decision_auto_execute,
+                    "decision_approval_required": routing.decision_approval_required,
+                    "decision_sandbox_first": routing.decision_sandbox_first,
+                    "decision_review_required": routing.decision_review_required,
+                    "decision_blocked": routing.decision_blocked,
+                    "content_policy_block": routing.content_policy_block,
+                    "capability_supported": routing.capability_supported,
+                    "promotion_basis": routing.promotion_basis,
+                    "fail_closed_reason": routing.fail_closed_reason,
                     "approval_state": approval_state,
                     "approved_by": approved_by,
                     "approved_at": approved_at,
@@ -437,7 +491,7 @@ class ConversationalTaskIntake:
             "clarification_needed": False,
             "context": {
                 "target_repo": target_repo,
-                "execution_mode": routing.execution_lane if routing.mutation_capable else "bounded_read_only",
+                "execution_mode": routing.execution_lane if routing.requested_intent == "mutate" or routing.mutation_capable else "bounded_read_only",
                 "source": "ai_e_runtime.task_intake",
                 "routing": routing.to_payload(),
             },
@@ -488,7 +542,7 @@ class ConversationalTaskIntake:
             "task_graph_path": self._relative(task_graph_path),
             "request_id": request.request_id,
             "request_fingerprint": self._prompt_fingerprint(request.operator_prompt, target_repo, task_type),
-            "execution_mode": routing.execution_lane if routing.mutation_capable else "bounded_read_only",
+            "execution_mode": routing.execution_lane if routing.requested_intent == "mutate" or routing.mutation_capable else "bounded_read_only",
             "requested_intent": routing.requested_intent,
             "resolved_intent": routing.resolved_intent,
             "requested_execution_lane": routing.requested_execution_lane,
@@ -528,10 +582,22 @@ class ConversationalTaskIntake:
             "required_rating_upgrade": routing.required_rating_upgrade,
             "requested_content_dimensions": dict(routing.requested_content_dimensions or {}),
             "content_policy_summary": routing.content_policy_summary,
-            "approval_state": "blocked" if status == "blocked" else ("awaiting_approval" if status == "needs_approval" else ("auto_approved" if routing.execution_decision == "auto_execute" else "not_required")),
-            "approved_by": "system_intelligence_v1" if routing.execution_decision == "auto_execute" else None,
-            "approved_at": utc_timestamp(compact=False) if routing.execution_decision == "auto_execute" else None,
-            "approval_notes": routing.auto_execution_reason or "" if routing.execution_decision == "auto_execute" else "",
+            "decision": routing.decision,
+            "decision_reason": routing.decision_reason,
+            "decision_summary": routing.decision_summary,
+            "decision_auto_execute": routing.decision_auto_execute,
+            "decision_approval_required": routing.decision_approval_required,
+            "decision_sandbox_first": routing.decision_sandbox_first,
+            "decision_review_required": routing.decision_review_required,
+            "decision_blocked": routing.decision_blocked,
+            "content_policy_block": routing.content_policy_block,
+            "capability_supported": routing.capability_supported,
+            "promotion_basis": routing.promotion_basis,
+            "fail_closed_reason": routing.fail_closed_reason,
+            "approval_state": "blocked" if status == "blocked" else ("awaiting_approval" if status == "needs_approval" else ("auto_approved" if routing.auto_execution_enabled and routing.decision == "auto_execute" else "not_required")),
+            "approved_by": "system_intelligence_v1" if routing.auto_execution_enabled and routing.decision == "auto_execute" else None,
+            "approved_at": utc_timestamp(compact=False) if routing.auto_execution_enabled and routing.decision == "auto_execute" else None,
+            "approval_notes": routing.auto_execution_reason or "" if routing.auto_execution_enabled and routing.decision == "auto_execute" else "",
             "plan_id": plan_id,
             "plan_step_index": plan_step_index,
             "plan_total_steps": plan_total_steps,
@@ -589,22 +655,22 @@ class ConversationalTaskIntake:
             return "bounded_activation_request"
         return "general_request"
 
-    def _resolve_intake_routing(self, prompt: str) -> IntakeRouting:
+    def _resolve_intake_routing(self, prompt: str, *, session_id: str) -> IntakeRouting:
         normalized = self._normalize_prompt(prompt).lower()
         requested_intent = self._classify_requested_intent(normalized)
         requested_execution_lane = self._requested_lane_for_intent(requested_intent)
         capability = self.capability_registry.match(normalized)
         if capability is not None:
-            return self._apply_content_policy(prompt=normalized, routing=self._routing_for_capability(capability), capability=capability)
+            return self._apply_content_policy(prompt=normalized, routing=self._routing_for_capability(capability), capability=capability, session_id=session_id)
         if requested_intent == "mutate":
             intelligence = assess_mutation_without_capability()
             return self._apply_content_policy(prompt=normalized, routing=IntakeRouting(
                 requested_intent="mutate",
-                resolved_intent="inspect",
+                resolved_intent="mutate",
                 requested_execution_lane=requested_execution_lane,
-                execution_lane="read_only_inspection",
-                downgraded=True,
-                downgrade_reason="No write-capable mutation handler is available in the current runtime; routing to bounded read-only inspection.",
+                execution_lane=requested_execution_lane,
+                downgraded=False,
+                downgrade_reason=None,
                 approval_required=False,
                 mutation_capable=False,
                 trust_score=intelligence.trust_score,
@@ -617,7 +683,7 @@ class ConversationalTaskIntake:
                 auto_execution_reason=intelligence.auto_execution_reason,
                 missing_evidence=list(intelligence.missing_evidence),
                 intelligence_summary=intelligence.summary,
-            ))
+            ), session_id=session_id)
         if requested_intent == "plan":
             return self._apply_content_policy(prompt=normalized, routing=IntakeRouting(
                 requested_intent="plan",
@@ -628,7 +694,7 @@ class ConversationalTaskIntake:
                 downgrade_reason="No dedicated plan-only execution lane is available in the current runtime; routing to bounded read-only inspection.",
                 approval_required=False,
                 mutation_capable=False,
-            ))
+            ), session_id=session_id)
         if requested_intent == "inspect":
             return self._apply_content_policy(prompt=normalized, routing=IntakeRouting(
                 requested_intent="inspect",
@@ -639,7 +705,7 @@ class ConversationalTaskIntake:
                 downgrade_reason=None,
                 approval_required=False,
                 mutation_capable=False,
-            ))
+            ), session_id=session_id)
         return self._apply_content_policy(prompt=normalized, routing=IntakeRouting(
             requested_intent="ambiguous",
             resolved_intent="inspect",
@@ -649,7 +715,7 @@ class ConversationalTaskIntake:
             downgrade_reason=None,
             approval_required=False,
             mutation_capable=False,
-        ))
+        ), session_id=session_id)
 
     def _routing_for_capability(self, capability: RuntimeCapability) -> IntakeRouting:
         intelligence = assess_capability_intelligence(capability)
@@ -700,6 +766,7 @@ class ConversationalTaskIntake:
         prompt: str,
         routing: IntakeRouting,
         capability: RuntimeCapability | None = None,
+        session_id: str,
     ) -> IntakeRouting:
         profile = load_project_content_profile(self.config)
         assessment = evaluate_content_policy(
@@ -728,6 +795,53 @@ class ConversationalTaskIntake:
                 auto_execution_enabled = False
                 auto_execution_reason = None
 
+        runtime_context = self._load_runtime_context(session_id)
+        decision = evaluate_autonomous_decision(
+            requested_intent=routing.requested_intent,
+            resolved_intent=routing.resolved_intent,
+            mutation_capable=routing.mutation_capable,
+            capability_supported=capability is not None or routing.requested_intent != "mutate",
+            eligible_for_auto=routing.eligible_for_auto,
+            approval_required_by_capability=approval_required,
+            intelligence_execution_decision=execution_decision,
+            intelligence_summary=routing.intelligence_summary,
+            auto_execution_reason=auto_execution_reason,
+            missing_evidence=list(routing.missing_evidence or []),
+            content_policy_decision=assessment.content_policy_decision,
+            content_policy_summary=assessment.summary,
+            rating_locked=assessment.rating_locked,
+            runtime_context=runtime_context,
+        )
+
+        if decision.decision == "require_review":
+            execution_decision = "require_review"
+            recommended_action = "requires_review"
+            approval_required = True
+            auto_execution_enabled = False
+            auto_execution_reason = None
+        elif decision.decision == "require_approval":
+            execution_decision = "approval_required"
+            recommended_action = "approval_required"
+            approval_required = True
+            auto_execution_enabled = False
+            auto_execution_reason = None
+        elif decision.decision == "sandbox_first":
+            execution_decision = "sandbox_first"
+            recommended_action = "sandbox_first"
+            approval_required = True
+            auto_execution_enabled = False
+            auto_execution_reason = None
+        elif decision.decision == "block":
+            execution_decision = "blocked"
+            recommended_action = "blocked"
+            approval_required = False
+            auto_execution_enabled = False
+            auto_execution_reason = None
+        elif decision.decision == "auto_execute":
+            execution_decision = "auto_execute" if routing.mutation_capable else (routing.execution_decision or "auto_execute")
+            recommended_action = "auto_execute"
+            approval_required = False
+
         return replace(
             routing,
             approval_required=approval_required,
@@ -743,7 +857,40 @@ class ConversationalTaskIntake:
             required_rating_upgrade=assessment.required_rating_upgrade,
             requested_content_dimensions=dict(assessment.requested_content_dimensions),
             content_policy_summary=assessment.summary,
+            decision=decision.decision,
+            decision_reason=decision.decision_reason,
+            decision_summary=decision.decision_summary,
+            decision_auto_execute=decision.auto_execute,
+            decision_approval_required=decision.approval_required,
+            decision_sandbox_first=decision.sandbox_first,
+            decision_review_required=decision.review_required,
+            decision_blocked=decision.blocked,
+            content_policy_block=decision.content_policy_block,
+            capability_supported=decision.capability_supported,
+            promotion_basis=decision.promotion_basis,
+            fail_closed_reason=decision.fail_closed_reason,
         )
+
+    def _load_runtime_context(self, session_id: str) -> DecisionRuntimeContext:
+        state_store = StateStore(self.config.runs_dir, session_id)
+        if not state_store.state_path.exists():
+            return DecisionRuntimeContext()
+        state = state_store.load()
+        return DecisionRuntimeContext(
+            session_phase=str(state.get("session_phase") or "") or None,
+            waiting_reason=str(state.get("waiting_reason") or "") or None,
+            blocked_reason=str(state.get("blocked_reason") or "") or None,
+            current_task_id=str(state.get("current_task") or "") or None,
+            queue_remaining=int(state.get("queue_remaining", 0) or 0),
+        )
+
+    def _record_session_progress(self, session_id: str, **progress_fields: Any) -> None:
+        state_store = StateStore(self.config.runs_dir, session_id)
+        if not state_store.state_path.exists():
+            return
+        state = state_store.load()
+        state.update(progress_fields)
+        state_store.save(state)
 
     def _classify_requested_intent(self, normalized_prompt: str) -> str:
         if any(self._contains_phrase(normalized_prompt, phrase) for phrase in self._PLAN_REQUEST_VERBS):

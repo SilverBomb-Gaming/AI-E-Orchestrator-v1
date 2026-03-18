@@ -156,7 +156,7 @@ def run_interactive_session(
     output_handle.flush()
 
     while True:
-        if not worker.is_alive() and input_queue.empty() and "result" in result_holder:
+        if not worker.is_alive() and not reader.is_alive() and input_queue.empty() and "result" in result_holder:
             break
         try:
             line = input_queue.get(timeout=0.1)
@@ -193,9 +193,6 @@ def run_interactive_session(
                 "Recommendation: Ask a status question or enter a direct task request such as 'stabilize LEVEL_0001 ...'.\n"
             )
             output_handle.flush()
-        if not worker.is_alive() and "result" in result_holder:
-            break
-
     worker.join()
     return result_holder["result"]
 
@@ -264,12 +261,35 @@ def _accept_interactive_task_request(
             "required_rating_upgrade": result.routing.required_rating_upgrade,
             "requested_content_dimensions": dict(result.routing.requested_content_dimensions or {}),
             "content_policy_summary": result.routing.content_policy_summary,
+            "decision": result.routing.decision,
+            "decision_reason": result.routing.decision_reason,
+            "decision_summary": result.routing.decision_summary,
+            "decision_auto_execute": result.routing.decision_auto_execute,
+            "decision_approval_required": result.routing.decision_approval_required,
+            "decision_sandbox_first": result.routing.decision_sandbox_first,
+            "decision_review_required": result.routing.decision_review_required,
+            "decision_blocked": result.routing.decision_blocked,
+            "content_policy_block": result.routing.content_policy_block,
+            "capability_supported": result.routing.capability_supported,
+            "promotion_basis": result.routing.promotion_basis,
+            "fail_closed_reason": result.routing.fail_closed_reason,
             "queue_write_status": "confirmed" if result.created else "existing_task_reused",
         },
     }
 
 
 def _format_task_acceptance_response(result: IntakeResult) -> str:
+    if result.queue_entry.get('status') == 'blocked':
+        execution_notice = "Task is blocked and will not execute until the blocking condition is resolved."
+        recommendation = "Resolve the blocking condition before resubmitting or approving the task."
+    elif result.queue_entry.get('status') == 'needs_approval':
+        execution_notice = "Supervisor will wait for operator approval before execution begins."
+        recommendation = "Review the decision and approve the task when appropriate."
+    else:
+        execution_notice = "Supervisor will pick up the task automatically."
+        recommendation = "Monitor the queue for task start and completion." if result.created else "Task already existed in the queue; monitor current task state."
+    plan_recommendation = recommendation if result.queue_entry.get('status') == 'blocked' else "Monitor plan progress with 'what plan did you generate', 'what step is running', or 'how many steps are left'."
+
     if result.is_multi_step:
         lines = [
             "AI-E PLAN ACCEPTED",
@@ -304,9 +324,14 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
             f"Content Policy Match: {result.routing.content_policy_match or 'none'}",
             f"Content Policy Decision: {result.routing.content_policy_decision or 'none'}",
             f"Required Rating Upgrade: {result.routing.required_rating_upgrade or 'none'}",
+            f"Decision: {result.routing.decision or 'none'}",
+            f"Decision Reason: {result.routing.decision_reason or 'none'}",
+            f"Decision Summary: {result.routing.decision_summary or 'none'}",
             f"Requested Content Dimensions: {_format_content_dimensions(result.routing.requested_content_dimensions)}",
             f"Missing Evidence: {', '.join(result.routing.missing_evidence or []) or 'none'}",
             f"Auto Reason: {result.routing.auto_execution_reason or 'none'}",
+            f"Promotion Basis: {result.routing.promotion_basis or 'none'}",
+            f"Fail Closed Reason: {result.routing.fail_closed_reason or 'none'}",
             f"Content Policy Summary: {result.routing.content_policy_summary or 'none'}",
             f"Queue Write: {'confirmed' if result.created else 'existing task reused'}",
             f"Status: {result.queue_entry.get('status', 'pending')}",
@@ -321,9 +346,9 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
                 "",
                 f"Task Graph Payload: {result.artifacts.task_graph_path}",
                 f"Runtime Task Payloads: {', '.join(str(path) for path in result.artifacts.runtime_task_payload_paths)}",
-                "Supervisor will process the plan automatically.",
+                execution_notice,
                 "",
-                "Recommendation: Monitor plan progress with 'what plan did you generate', 'what step is running', or 'how many steps are left'.",
+                f"Recommendation: {plan_recommendation}",
             ]
         )
         return "\n".join(lines)
@@ -363,18 +388,23 @@ def _format_task_acceptance_response(result: IntakeResult) -> str:
         f"Content Policy Match: {result.routing.content_policy_match or 'none'}",
         f"Content Policy Decision: {result.routing.content_policy_decision or 'none'}",
         f"Required Rating Upgrade: {result.routing.required_rating_upgrade or 'none'}",
+        f"Decision: {result.routing.decision or 'none'}",
+        f"Decision Reason: {result.routing.decision_reason or 'none'}",
+        f"Decision Summary: {result.routing.decision_summary or 'none'}",
         f"Requested Content Dimensions: {_format_content_dimensions(result.routing.requested_content_dimensions)}",
         f"Missing Evidence: {', '.join(result.routing.missing_evidence or []) or 'none'}",
         f"Auto Reason: {result.routing.auto_execution_reason or 'none'}",
+        f"Promotion Basis: {result.routing.promotion_basis or 'none'}",
+        f"Fail Closed Reason: {result.routing.fail_closed_reason or 'none'}",
         f"Content Policy Summary: {result.routing.content_policy_summary or 'none'}",
         f"Queue Write: {'confirmed' if result.created else 'existing task reused'}",
         f"Target Repo: {result.target_repo}",
         f"Runtime Task Payload: {result.artifacts.runtime_task_payload_path}",
         f"Request Payload: {result.artifacts.request_payload_path}",
         f"Task Graph Payload: {result.artifacts.task_graph_path}",
-        "Supervisor will pick up the task automatically.",
+        execution_notice,
         "",
-        f"Recommendation: {'Monitor the queue for task start and completion.' if result.created else 'Task already existed in the queue; monitor current task state.'}",
+        f"Recommendation: {recommendation}",
     ]
     if result.routing.downgraded and result.routing.downgrade_reason:
         lines.insert(-4, f"Downgrade Reason: {result.routing.downgrade_reason}")
@@ -431,6 +461,13 @@ def _wait_for_interactive_task_progress(supervisor: Supervisor, acceptance_detai
 
 
 def print_runtime_result(result: object) -> None:
+    runtime_status_path = result.state_path.parent / "runtime_status.json"
+    runtime_status = {}
+    if runtime_status_path.exists():
+        try:
+            runtime_status = json.loads(runtime_status_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            runtime_status = {}
     print(
         json.dumps(
             {
@@ -441,6 +478,16 @@ def print_runtime_result(result: object) -> None:
                 "tasks_completed": result.tasks_completed,
                 "queue_remaining": result.queue_remaining,
                 "heartbeats_emitted": result.heartbeats_emitted,
+                "rating_system": runtime_status.get("rating_system"),
+                "rating_target": runtime_status.get("rating_target"),
+                "rating_locked": runtime_status.get("rating_locked"),
+                "session_phase": runtime_status.get("session_phase"),
+                "phase_index": runtime_status.get("phase_index"),
+                "phase_total": runtime_status.get("phase_total"),
+                "phase_label": runtime_status.get("phase_label"),
+                "progress_mode": runtime_status.get("progress_mode"),
+                "waiting_reason": runtime_status.get("waiting_reason"),
+                "blocked_reason": runtime_status.get("blocked_reason"),
                 "state_path": str(result.state_path),
                 "heartbeat_log_path": str(result.heartbeat_log_path),
             },

@@ -50,6 +50,16 @@ def test_runtime_state_returns_expected_fields_and_writes_snapshot(tmp_path):
     assert snapshot.tasks_failed == []
     assert snapshot.heartbeat_timestamp is not None
     assert snapshot.artifact_output_path.endswith("runs\\runtime-state-session\\artifacts")
+    assert snapshot.rating_system == "ESRB"
+    assert snapshot.rating_target == "M"
+    assert snapshot.rating_locked is True
+    assert snapshot.session_phase == "complete"
+    assert snapshot.phase_index == 7
+    assert snapshot.phase_total == 7
+    assert snapshot.phase_label == "Complete"
+    assert snapshot.progress_mode == "phase_based"
+    assert snapshot.waiting_reason is None
+    assert snapshot.blocked_reason is None
 
     runtime_status_path = config.runs_dir / "runtime-state-session" / "runtime_status.json"
     assert runtime_status_path.exists()
@@ -65,6 +75,13 @@ def test_runtime_state_returns_expected_fields_and_writes_snapshot(tmp_path):
     assert payload["queue_tasks"] == []
     assert payload["tasks_completed"] == ["STATE_001"]
     assert payload["queue_remaining"] == 0
+    assert payload["rating_system"] == "ESRB"
+    assert payload["rating_target"] == "M"
+    assert payload["rating_locked"] is True
+    assert payload["session_phase"] == "complete"
+    assert payload["phase_index"] == 7
+    assert payload["phase_total"] == 7
+    assert payload["phase_label"] == "Complete"
     assert result.tasks_completed == 1
 
 

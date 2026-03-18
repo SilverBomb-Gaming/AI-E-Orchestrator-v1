@@ -236,21 +236,27 @@ def test_supervisor_detects_new_intake_task_while_idling_and_prints_status(tmp_p
     assert result.stop_reason == "queue_empty_idle_timeout"
     assert "SESSION STARTED" in output
     assert "QUEUE EMPTY / WAITING FOR TASKS" in output
-    assert "TASK ACCEPTED" in output
-    assert "TASK STARTED" in output
-    assert "TASK COMPLETED" in output
     assert "SESSION HEARTBEAT" in output
 
     queue = json.loads(config.queue_path.read_text(encoding="utf-8"))["tasks"]
     assert len(queue) == 1
-    assert queue[0]["status"] == "completed"
+    assert queue[0]["status"] == "blocked"
     assert queue[0]["task_type"] == "stabilization_request"
+    assert queue[0]["decision"] == "block"
+    assert queue[0]["execution_lane"] == "approval_required_mutation"
 
     runtime_status = json.loads((config.runs_dir / "idle-activation-session" / "runtime_status.json").read_text(encoding="utf-8"))
     assert runtime_status["current_task"] is None
-    assert runtime_status["last_started_task"] == queue[0]["task_id"]
-    assert runtime_status["last_completed_task"] == queue[0]["task_id"]
+    assert runtime_status["last_started_task"] is None
+    assert runtime_status["last_completed_task"] is None
     assert runtime_status["queue_tasks"] == []
+    assert runtime_status["rating_system"] == "ESRB"
+    assert runtime_status["rating_target"] == "M"
+    assert runtime_status["rating_locked"] is True
+    assert runtime_status["session_phase"] == "complete"
+    assert runtime_status["phase_index"] == 7
+    assert runtime_status["phase_total"] == 7
+    assert runtime_status["phase_label"] == "Complete"
 
 
 def test_scheduler_respects_plan_dependencies_for_multi_step_queue(tmp_path):

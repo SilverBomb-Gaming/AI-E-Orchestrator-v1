@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
+from .progress import format_progress_line
 from .runtime_state import RuntimeState
 
 
@@ -144,24 +145,15 @@ class ConversationRouter:
         )
 
     def _current_task_response(self, snapshot, heartbeat_age):
-        if snapshot.current_task_id:
-            answer = (
-                f"Session ID: {snapshot.session_id}\n"
-                f"Current Task: {snapshot.current_task_id}\n"
-                f"Queue Remaining: {snapshot.queue_remaining}\n"
-                f"Last Started Task: {snapshot.last_started_task or 'none'}\n"
-                f"Last Completed Task: {snapshot.last_completed_task or 'none'}\n"
-                f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-            )
-        else:
-            answer = (
-                f"Session ID: {snapshot.session_id}\n"
-                "Current Task: idle\n"
-                f"Queue Remaining: {snapshot.queue_remaining}\n"
-                f"Last Started Task: {snapshot.last_started_task or 'none'}\n"
-                f"Last Completed Task: {snapshot.last_completed_task or 'none'}\n"
-                f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-            )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Task: {snapshot.current_task_id or 'idle'}",
+            f"Queue Remaining: {snapshot.queue_remaining}",
+            f"Last Started Task: {snapshot.last_started_task or 'none'}",
+            f"Last Completed Task: {snapshot.last_completed_task or 'none'}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -172,15 +164,16 @@ class ConversationRouter:
 
     def _queue_response(self, snapshot, heartbeat_age):
         queue_line = f"Queue Remaining: {snapshot.queue_remaining}"
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Task: {snapshot.current_task_id or 'idle'}\n"
-            f"{queue_line}\n"
-            f"Queue Contents: {self._queue_contents_text(snapshot.queue_tasks)}\n"
-            f"Last Started Task: {snapshot.last_started_task or 'none'}\n"
-            f"Last Completed Task: {snapshot.last_completed_task or 'none'}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Task: {snapshot.current_task_id or 'idle'}",
+            queue_line,
+            f"Queue Contents: {self._queue_contents_text(snapshot.queue_tasks)}",
+            f"Last Started Task: {snapshot.last_started_task or 'none'}",
+            f"Last Completed Task: {snapshot.last_completed_task or 'none'}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -190,13 +183,14 @@ class ConversationRouter:
         )
 
     def _last_started_response(self, snapshot, heartbeat_age):
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Task: {snapshot.current_task_id or 'idle'}\n"
-            f"Last Started Task: {snapshot.last_started_task or 'none'}\n"
-            f"Queue Remaining: {snapshot.queue_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Task: {snapshot.current_task_id or 'idle'}",
+            f"Last Started Task: {snapshot.last_started_task or 'none'}",
+            f"Queue Remaining: {snapshot.queue_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -206,13 +200,14 @@ class ConversationRouter:
         )
 
     def _last_completed_response(self, snapshot, heartbeat_age):
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Task: {snapshot.current_task_id or 'idle'}\n"
-            f"Last Completed Task: {snapshot.last_completed_task or 'none'}\n"
-            f"Queue Remaining: {snapshot.queue_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Task: {snapshot.current_task_id or 'idle'}",
+            f"Last Completed Task: {snapshot.last_completed_task or 'none'}",
+            f"Queue Remaining: {snapshot.queue_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -235,15 +230,16 @@ class ConversationRouter:
             reason = "Currently idle because there are no pending queue tasks. The supervisor is healthy and still polling for new work."
         else:
             reason = "Currently idle between polls; pending work exists and will be picked up on the next scheduler cycle."
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Idle Analysis: {reason}\n"
-            f"Session State: {snapshot.session_state}\n"
-            f"Work State: {snapshot.work_state}\n"
-            f"Budget Mode: {snapshot.budget_mode}\n"
-            f"Queue Remaining: {snapshot.queue_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Idle Analysis: {reason}",
+            f"Session State: {snapshot.session_state}",
+            f"Work State: {snapshot.work_state}",
+            f"Budget Mode: {snapshot.budget_mode}",
+            f"Queue Remaining: {snapshot.queue_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -262,11 +258,12 @@ class ConversationRouter:
                 f"Failure Note: {failed.get('note', 'No detail recorded.')}\n"
                 f"Failure Timestamp: {failed.get('timestamp', 'unknown')}"
             )
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"{detail}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            detail,
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E STATUS REPORT",
             answer=answer,
@@ -287,13 +284,14 @@ class ConversationRouter:
 
     def _plan_summary_response(self, snapshot, heartbeat_age):
         summary = snapshot.last_generated_plan_summary or "No plan has been generated in this session yet."
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Plan ID: {snapshot.current_plan_id or 'none'}\n"
-            f"Plan Summary:\n{summary}\n"
-            f"Steps Remaining: {snapshot.steps_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Plan ID: {snapshot.current_plan_id or 'none'}",
+            f"Plan Summary:\n{summary}",
+            f"Steps Remaining: {snapshot.steps_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E PLAN STATUS",
             answer=answer,
@@ -304,13 +302,14 @@ class ConversationRouter:
 
     def _plan_running_step_response(self, snapshot, heartbeat_age):
         running_step = snapshot.current_plan_step or "none"
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Plan ID: {snapshot.current_plan_id or 'none'}\n"
-            f"Current Plan Step: {running_step}\n"
-            f"Steps Remaining: {snapshot.steps_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Plan ID: {snapshot.current_plan_id or 'none'}",
+            f"Current Plan Step: {running_step}",
+            f"Steps Remaining: {snapshot.steps_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E PLAN STATUS",
             answer=answer,
@@ -321,13 +320,14 @@ class ConversationRouter:
 
     def _plan_next_step_response(self, snapshot, heartbeat_age):
         next_step = snapshot.next_plan_step or "none"
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Plan ID: {snapshot.current_plan_id or 'none'}\n"
-            f"Next Plan Step: {next_step}\n"
-            f"Steps Remaining: {snapshot.steps_remaining}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Plan ID: {snapshot.current_plan_id or 'none'}",
+            f"Next Plan Step: {next_step}",
+            f"Steps Remaining: {snapshot.steps_remaining}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E PLAN STATUS",
             answer=answer,
@@ -337,14 +337,15 @@ class ConversationRouter:
         )
 
     def _plan_steps_remaining_response(self, snapshot, heartbeat_age):
-        answer = (
-            f"Session ID: {snapshot.session_id}\n"
-            f"Current Plan ID: {snapshot.current_plan_id or 'none'}\n"
-            f"Steps Remaining: {snapshot.steps_remaining}\n"
-            f"Current Plan Step: {snapshot.current_plan_step or 'none'}\n"
-            f"Next Plan Step: {snapshot.next_plan_step or 'none'}\n"
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}"
-        )
+        lines = [
+            f"Session ID: {snapshot.session_id}",
+            f"Current Plan ID: {snapshot.current_plan_id or 'none'}",
+            f"Steps Remaining: {snapshot.steps_remaining}",
+            f"Current Plan Step: {snapshot.current_plan_step or 'none'}",
+            f"Next Plan Step: {snapshot.next_plan_step or 'none'}",
+        ]
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
+        answer = "\n".join(lines)
         return ConversationResponse(
             title="AI-E PLAN STATUS",
             answer=answer,
@@ -367,11 +368,25 @@ class ConversationRouter:
             f"Queue Contents: {self._queue_contents_text(snapshot.queue_tasks)}",
             f"Last Started Task: {snapshot.last_started_task or 'none'}",
             f"Last Completed Task: {snapshot.last_completed_task or 'none'}",
-            f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}",
         ]
         if snapshot.last_failed_task is not None:
             lines.append(f"Last Failed Task: {snapshot.last_failed_task.get('task_id', 'unknown')}")
+        lines.extend(self._shared_status_lines(snapshot, heartbeat_age))
         return "\n".join(lines)
+
+    def _shared_status_lines(self, snapshot, heartbeat_age) -> List[str]:
+        lines = [
+            f"Rating System: {snapshot.rating_system or 'none'}",
+            f"Rating Target: {snapshot.rating_target or 'none'}",
+            f"Rating Locked: {'yes' if snapshot.rating_locked else 'no'}",
+            format_progress_line(snapshot.to_payload()),
+        ]
+        if snapshot.waiting_reason:
+            lines.append(f"Waiting Reason: {snapshot.waiting_reason}")
+        if snapshot.blocked_reason:
+            lines.append(f"Blocked Reason: {snapshot.blocked_reason}")
+        lines.append(f"Heartbeat Age: {self._heartbeat_text(heartbeat_age)}")
+        return lines
 
     def _recommendation_text(self, snapshot) -> str:
         if snapshot.current_task_id:

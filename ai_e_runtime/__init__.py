@@ -1,4 +1,5 @@
 from .agent_router import AgentRouter
+from .autonomous_decision import AutonomousDecision, DecisionRuntimeContext, evaluate_autonomous_decision
 from .artifact_writer import ArtifactWriter
 from .capability_intelligence import CapabilityIntelligenceAssessment, assess_capability_intelligence, assess_mutation_without_capability
 from .capability_registry import CapabilityEvidenceStore, CapabilityRegistry, RuntimeCapability
@@ -25,7 +26,9 @@ from .world_interaction_test_model import (
 
 __all__ = [
     "AgentRouter",
+    "AutonomousDecision",
     "ArtifactWriter",
+    "DecisionRuntimeContext",
     "CapabilityIntelligenceAssessment",
     "assess_capability_intelligence",
     "assess_mutation_without_capability",
@@ -65,6 +68,7 @@ __all__ = [
     "approve_mutation_task",
     "ensure_project_content_profile",
     "evaluate_content_policy",
+    "evaluate_autonomous_decision",
     "load_profile",
     "load_project_content_profile",
     "save_profile",

@@ -78,6 +78,14 @@ def test_conversation_router_answers_status_queries(tmp_path):
                     "Validate integrated result",
                     "Generate summary artifact",
                 ],
+                "session_phase": "execution",
+                "phase_index": 4,
+                "phase_total": 7,
+                "phase_label": "Execution",
+                "progress_mode": "phase_based",
+                "progress_percent": None,
+                "waiting_reason": None,
+                "blocked_reason": None,
             },
             indent=2,
         ),
@@ -99,6 +107,10 @@ def test_conversation_router_answers_status_queries(tmp_path):
 
     assert "Current Task: LEVEL_0001_STAB" in status_response.answer
     assert "Last Started Task: LEVEL_0001_STAB" in status_response.answer
+    assert "Rating System: ESRB" in status_response.answer
+    assert "Rating Target: M" in status_response.answer
+    assert "Rating Locked: yes" in status_response.answer
+    assert "Progress: [####---] 4/7 - Execution" in status_response.answer
     assert "Queue Contents: LEVEL_0001_STAB (running, priority 10); FOLLOWUP_001 (pending, priority 20)" in queue_response.answer
     assert "Last Started Task: LEVEL_0001_STAB" in started_response.answer
     assert "Last Completed Task: INTAKE_3F2BC964001F" in completed_response.answer
@@ -185,18 +197,22 @@ def test_interactive_mode_accepts_task_request_directly_without_manual_intake(tm
 
     assert "AI-E TASK ACCEPTED" in output
     assert "Classification: TASK_REQUEST" in output
-    assert "Execution Lane: read_only_inspection" in output
-    assert "Downgrade: yes" in output
-    assert "Supervisor will pick up the task automatically." in output
+    assert "Execution Lane: approval_required_mutation" in output
+    assert "Downgrade: no" in output
+    assert "Status: blocked" in output
+    assert "Decision: block" in output
+    assert "Task is blocked and will not execute until the blocking condition is resolved." in output
     assert "AI-E STATUS REPORT" in output
     assert len(queue) == 1
     assert queue[0]["task_id"].startswith("INTAKE_")
     assert queue[0]["request_payload_path"].startswith("contracts/intake/requests/")
     assert queue[0]["task_graph_path"].startswith("contracts/intake/task_graphs/")
     assert queue[0]["contract_path"].startswith("contracts/intake/runtime_tasks/")
-    assert runtime_status["last_started_task"] == queue[0]["task_id"]
-    assert runtime_status["last_completed_task"] == queue[0]["task_id"]
-    assert result.tasks_completed == 1
+    assert queue[0]["status"] == "blocked"
+    assert queue[0]["decision"] == "block"
+    assert runtime_status["last_started_task"] is None
+    assert runtime_status["last_completed_task"] is None
+    assert result.tasks_completed == 0
 
 
 def test_interactive_mode_supports_control_commands_without_queue_pollution(tmp_path, monkeypatch):
@@ -237,13 +253,17 @@ def test_interactive_mode_supports_control_commands_without_queue_pollution(tmp_
     assert "AI-E POLLING PAUSED" in output
     assert "AI-E POLLING RESUMED" in output
     assert "AI-E LAST ACCEPTANCE" in output
-    assert "Execution Lane: read_only_inspection" in output
+    assert "Execution Lane: approval_required_mutation" in output
+    assert "Status: blocked" in output
+    assert "Decision: block" in output
     assert "AI-E LAST ARTIFACT" in output
     assert "Runtime Task Payload:" in output
     assert len(queue) == 1
     assert queue[0]["task_type"] == "stabilization_request"
+    assert queue[0]["status"] == "blocked"
+    assert queue[0]["decision"] == "block"
     assert state["polling_enabled"] is True
-    assert result.stop_reason == "operator_exit"
+    assert result.stop_reason == "queue_empty_idle_timeout"
 
 
 def test_interactive_mode_accepts_composite_plan_and_answers_plan_queries(tmp_path, monkeypatch):
@@ -283,7 +303,7 @@ def test_interactive_mode_accepts_composite_plan_and_answers_plan_queries(tmp_pa
     assert len(queue) == 5
     assert runtime_status["current_plan_id"] is not None
     assert runtime_status["last_generated_plan_summary"].startswith("PLAN")
-    assert result.tasks_completed >= 1
+    assert result.tasks_completed == 0
 
 
 def test_interactive_mode_reports_approval_required_lane_for_freeform_grass_request(tmp_path, monkeypatch):

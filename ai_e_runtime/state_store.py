@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .progress import phase_payload
 from orchestrator.utils import ensure_dir, read_json, write_json
 
 
@@ -64,6 +65,7 @@ class StateStore:
             "last_generated_plan_summary": None,
             "last_generated_plan_steps": [],
         }
+        state.update(phase_payload("intake", waiting_reason="Waiting for new task intake."))
         self.save(state)
         return state
 
@@ -92,6 +94,14 @@ class StateStore:
         state.setdefault("current_plan_step", None)
         state.setdefault("last_generated_plan_summary", None)
         state.setdefault("last_generated_plan_steps", [])
+        state.setdefault("session_phase", "intake")
+        state.setdefault("phase_index", 1)
+        state.setdefault("phase_total", 7)
+        state.setdefault("phase_label", "Intake")
+        state.setdefault("progress_mode", "phase_based")
+        state.setdefault("progress_percent", None)
+        state.setdefault("waiting_reason", "Waiting for new task intake.")
+        state.setdefault("blocked_reason", None)
         return state
 
     def save(self, state: Dict[str, Any]) -> None:
@@ -226,6 +236,27 @@ class StateStore:
         state["queue_remaining"] = int(queue_remaining)
         state["current_task"] = None
         state["current_plan_step"] = None
+        state.update(phase_payload("complete"))
+        self.save(state)
+        return state
+
+    def update_progress(
+        self,
+        state: Dict[str, Any],
+        *,
+        session_phase: str,
+        waiting_reason: str | None = None,
+        blocked_reason: str | None = None,
+        progress_percent: int | None = None,
+    ) -> Dict[str, Any]:
+        state.update(
+            phase_payload(
+                session_phase,
+                waiting_reason=waiting_reason,
+                blocked_reason=blocked_reason,
+                progress_percent=progress_percent,
+            )
+        )
         self.save(state)
         return state
 

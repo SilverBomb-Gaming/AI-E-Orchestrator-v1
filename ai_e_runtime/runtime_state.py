@@ -45,6 +45,14 @@ class RuntimeStateSnapshot:
     steps_remaining: int
     last_generated_plan_summary: str | None
     last_generated_plan_steps: List[str]
+    session_phase: str
+    phase_index: int
+    phase_total: int
+    phase_label: str
+    progress_mode: str
+    progress_percent: int | None
+    waiting_reason: str | None
+    blocked_reason: str | None
     rating_system: str | None
     rating_target: str | None
     rating_locked: bool
@@ -82,6 +90,14 @@ class RuntimeStateSnapshot:
             "steps_remaining": self.steps_remaining,
             "last_generated_plan_summary": self.last_generated_plan_summary,
             "last_generated_plan_steps": list(self.last_generated_plan_steps),
+            "session_phase": self.session_phase,
+            "phase_index": self.phase_index,
+            "phase_total": self.phase_total,
+            "phase_label": self.phase_label,
+            "progress_mode": self.progress_mode,
+            "progress_percent": self.progress_percent,
+            "waiting_reason": self.waiting_reason,
+            "blocked_reason": self.blocked_reason,
             "rating_system": self.rating_system,
             "rating_target": self.rating_target,
             "rating_locked": self.rating_locked,
@@ -183,6 +199,14 @@ class RuntimeState:
             steps_remaining=steps_remaining,
             last_generated_plan_summary=state.get("last_generated_plan_summary"),
             last_generated_plan_steps=[str(item) for item in state.get("last_generated_plan_steps", [])],
+            session_phase=str(state.get("session_phase") or "intake"),
+            phase_index=int(state.get("phase_index", 1) or 1),
+            phase_total=int(state.get("phase_total", 7) or 7),
+            phase_label=str(state.get("phase_label") or "Intake"),
+            progress_mode=str(state.get("progress_mode") or "phase_based"),
+            progress_percent=int(state["progress_percent"]) if state.get("progress_percent") is not None else None,
+            waiting_reason=state.get("waiting_reason"),
+            blocked_reason=state.get("blocked_reason"),
             rating_system=profile.rating_system,
             rating_target=profile.rating_target,
             rating_locked=profile.rating_locked,
@@ -267,6 +291,18 @@ class RuntimeState:
                     "required_rating_upgrade": task.get("required_rating_upgrade"),
                     "requested_content_dimensions": dict(task.get("requested_content_dimensions") or {}) if isinstance(task.get("requested_content_dimensions"), dict) else {},
                     "content_policy_summary": task.get("content_policy_summary"),
+                    "decision": task.get("decision"),
+                    "decision_reason": task.get("decision_reason"),
+                    "decision_summary": task.get("decision_summary"),
+                    "decision_auto_execute": bool(task.get("decision_auto_execute", False)),
+                    "decision_approval_required": bool(task.get("decision_approval_required", False)),
+                    "decision_sandbox_first": bool(task.get("decision_sandbox_first", False)),
+                    "decision_review_required": bool(task.get("decision_review_required", False)),
+                    "decision_blocked": bool(task.get("decision_blocked", False)),
+                    "content_policy_block": bool(task.get("content_policy_block", False)),
+                    "capability_supported": bool(task.get("capability_supported", False)),
+                    "promotion_basis": task.get("promotion_basis"),
+                    "fail_closed_reason": task.get("fail_closed_reason"),
                     "approval_state": task.get("approval_state"),
                     "plan_id": task.get("plan_id"),
                     "plan_step_index": int(task.get("plan_step_index", 0) or 0),

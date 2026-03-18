@@ -14,6 +14,7 @@ from orchestrator.utils import ensure_dir
 from .agent_router import AgentRouter
 from .artifact_writer import ArtifactWriter
 from .heartbeat import HeartbeatEmitter
+from .progress import format_progress_line
 from .runtime_state import RuntimeState, RuntimeStateSnapshot
 from .scheduler import Scheduler
 from .state_store import StateStore
@@ -122,6 +123,11 @@ class Supervisor:
                 self._reset_idle_tracking(state)
                 queue_remaining = self.scheduler.remaining_count()
                 state = self._sync_control_state(state)
+                state = self.state_store.update_progress(
+                    state,
+                    session_phase="approval_auto_decision",
+                    waiting_reason="Queue polling is paused by operator command.",
+                )
                 state = self.state_store.update_runtime(
                     state,
                     elapsed_time_seconds=elapsed_seconds,
@@ -145,6 +151,12 @@ class Supervisor:
                 awaiting_approval = any(
                     str(task.get("status", "pending")).lower() == "needs_approval"
                     for task in self.scheduler.all_tasks()
+                )
+                waiting_reason = "Waiting for operator approval." if awaiting_approval else "Waiting for new task intake."
+                state = self.state_store.update_progress(
+                    state,
+                    session_phase="approval_auto_decision" if awaiting_approval else "intake",
+                    waiting_reason=waiting_reason,
                 )
                 state = self._record_idle_runtime(
                     state,
@@ -202,6 +214,8 @@ class Supervisor:
             running_task = self.scheduler.mark_running(task_id, session_id=self.session_id)
             running_task = self._merge_task_payload(running_task, payload_path)
             state = self._sync_control_state(state)
+            state = self.state_store.update_progress(state, session_phase="execution")
+            self._status(self._progress_status_line(state, task_id=task_id))
             state = self.state_store.record_task_started(
                 state,
                 elapsed_time_seconds=elapsed_seconds,
@@ -215,8 +229,12 @@ class Supervisor:
             self._status(f"TASK STARTED task_id={task_id} agent_type={running_task.get('agent_type', 'copilot_coder_agent')}")
 
             result = self.agent_router.run(running_task)
+            state = self.state_store.update_progress(state, session_phase="validation")
+            self._status(self._progress_status_line(state, task_id=task_id))
             validation = self.agent_router.validate(result, task=running_task)
             artifact_paths = self.artifact_writer.store(task=running_task, result=result, validation=validation)
+            state = self.state_store.update_progress(state, session_phase="rollback_finalization")
+            self._status(self._progress_status_line(state, task_id=task_id))
 
             queue_action = validation.get("queue_action", "complete")
             note = str(validation.get("note") or result.get("summary") or "Supervisor processed task.")
@@ -234,6 +252,16 @@ class Supervisor:
             else:
                 self.scheduler.mark_blocked(task_id, session_id=self.session_id, reason=note, result=result)
                 final_status = "blocked"
+
+            if final_status == "completed":
+                state = self.state_store.update_progress(state, session_phase="complete")
+            else:
+                state = self.state_store.update_progress(
+                    state,
+                    session_phase="validation",
+                    blocked_reason=note,
+                )
+            self._status(self._progress_status_line(state, task_id=task_id))
 
             state = self._sync_control_state(state)
             state = self.state_store.update_runtime(
@@ -430,3 +458,9 @@ class Supervisor:
 
     def _status(self, message: str) -> None:
         print(message)
+
+    def _progress_status_line(self, state: Dict[str, Any], *, task_id: str | None = None) -> str:
+        prefix = "PROGRESS"
+        if task_id:
+            prefix = f"PROGRESS task_id={task_id}"
+        return f"{prefix} {format_progress_line(state)}"

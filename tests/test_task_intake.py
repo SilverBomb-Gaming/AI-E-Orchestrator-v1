@@ -22,21 +22,25 @@ def test_task_intake_creates_deterministic_runtime_payload_and_pending_queue_ent
     assert result.request_id == "REQ_3335996CEC5B"
     assert result.task_type == "bounded_activation_request"
     assert result.target_repo == "E:/AI projects 2025/BABYLON VER 2"
-    assert result.queue_entry["status"] == "pending"
+    assert result.queue_entry["status"] == "blocked"
     assert result.queue_entry["agent_type"] == "read_only_inspector_agent"
     assert result.routing.requested_intent == "mutate"
     assert result.routing.requested_execution_lane == "approval_required_mutation"
-    assert result.routing.execution_lane == "read_only_inspection"
-    assert result.routing.downgraded is True
+    assert result.routing.execution_lane == "approval_required_mutation"
+    assert result.routing.downgraded is False
     assert result.routing.mutation_capable is False
+    assert result.routing.decision == "block"
+    assert result.routing.capability_supported is False
+    assert result.routing.fail_closed_reason == "No supported write-capable capability matched the request."
 
     queue = json.loads(config.queue_path.read_text(encoding="utf-8"))["tasks"]
     assert len(queue) == 1
     assert queue[0]["task_id"] == result.task_id
     assert queue[0]["contract_path"] == "contracts/intake/runtime_tasks/INTAKE_3335996CEC5B.json"
     assert queue[0]["requested_intent"] == "mutate"
-    assert queue[0]["execution_lane"] == "read_only_inspection"
-    assert queue[0]["downgraded"] is True
+    assert queue[0]["execution_lane"] == "approval_required_mutation"
+    assert queue[0]["downgraded"] is False
+    assert queue[0]["decision"] == "block"
 
     request_payload = json.loads(result.artifacts.request_payload_path.read_text(encoding="utf-8"))
     task_graph = json.loads(result.artifacts.task_graph_path.read_text(encoding="utf-8"))
@@ -46,10 +50,11 @@ def test_task_intake_creates_deterministic_runtime_payload_and_pending_queue_ent
     assert task_graph["task_graph"]["request_id"] == result.request_id
     assert task_graph["task_graph"]["nodes"][0]["task_id"] == result.task_id
     assert runtime_payload["runtime_task"]["task_id"] == result.task_id
-    assert runtime_payload["runtime_task"]["execution_mode"] == "bounded_read_only"
+    assert runtime_payload["runtime_task"]["execution_mode"] == "approval_required_mutation"
     assert request_payload["conversational_request"]["context"]["routing"]["requested_execution_lane"] == "approval_required_mutation"
-    assert runtime_payload["runtime_task"]["execution_lane"] == "read_only_inspection"
-    assert runtime_payload["runtime_task"]["downgraded"] is True
+    assert runtime_payload["runtime_task"]["execution_lane"] == "approval_required_mutation"
+    assert runtime_payload["runtime_task"]["downgraded"] is False
+    assert runtime_payload["runtime_task"]["decision"] == "block"
 
 
 def test_task_intake_supports_real_stabilization_request(tmp_path):
@@ -61,13 +66,15 @@ def test_task_intake_supports_real_stabilization_request(tmp_path):
         session_id="operator-session-b",
     )
 
-    assert result.queue_entry["status"] == "pending"
+    assert result.queue_entry["status"] == "blocked"
     assert result.queue_entry["task_type"] == "stabilization_request"
     assert result.queue_entry["target_repo"] == "E:/AI projects 2025/BABYLON VER 2"
     assert result.queue_entry["contract_path"].startswith("contracts/intake/runtime_tasks/")
     assert result.routing.requested_intent == "mutate"
-    assert result.routing.execution_lane == "read_only_inspection"
-    assert result.routing.downgraded is True
+    assert result.routing.execution_lane == "approval_required_mutation"
+    assert result.routing.downgraded is False
+    assert result.routing.decision == "block"
+    assert result.routing.capability_supported is False
 
 
 def test_task_intake_expands_composite_request_into_multiple_queue_tasks(tmp_path):
@@ -117,9 +124,11 @@ def test_task_intake_routes_freeform_grass_request_into_approval_required_mutati
     assert result.routing.approval_required is True
     assert result.routing.mutation_capable is True
     assert result.routing.capability_id == "level_0001_add_grass"
+    assert result.routing.decision == "sandbox_first"
     assert runtime_payload["runtime_task"]["requested_execution_lane"] == "approval_required_mutation"
     assert runtime_payload["runtime_task"]["execution_lane"] == "approval_required_mutation"
     assert runtime_payload["runtime_task"]["approval_state"] == "awaiting_approval"
+    assert runtime_payload["runtime_task"]["decision"] == "sandbox_first"
 
 
 def test_task_intake_routes_supported_grass_mutation_into_approval_required_lane(tmp_path):
@@ -156,6 +165,7 @@ def test_task_intake_routes_supported_grass_mutation_into_approval_required_lane
     assert result.routing.content_policy_match == "fits_rating"
     assert result.routing.content_policy_decision == "allowed"
     assert result.routing.required_rating_upgrade is None
+    assert result.routing.decision == "sandbox_first"
     assert runtime_payload["runtime_task"]["approval_state"] == "awaiting_approval"
     assert runtime_payload["runtime_task"]["target_scene"] == "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
 
@@ -196,6 +206,7 @@ def test_task_intake_routes_supported_remove_grass_mutation_into_approval_requir
     assert result.routing.rating_target == "M"
     assert result.routing.content_policy_match == "fits_rating"
     assert result.routing.content_policy_decision == "allowed"
+    assert result.routing.decision == "sandbox_first"
     assert runtime_payload["runtime_task"]["approval_state"] == "awaiting_approval"
     assert runtime_payload["runtime_task"]["target_level"] == "LEVEL_0001"
     assert runtime_payload["runtime_task"]["target_scene"] == "Assets/AI_E_TestScenes/MinimalPlayableArena.unity"
@@ -223,9 +234,11 @@ def test_task_intake_auto_promotes_reference_grass_capability_when_reference_evi
     assert result.routing.auto_execution_enabled is True
     assert result.routing.approval_required is False
     assert result.routing.eligible_for_auto is True
+    assert result.routing.decision == "auto_execute"
     assert runtime_payload["runtime_task"]["approval_state"] == "auto_approved"
     assert runtime_payload["runtime_task"]["execution_decision"] == "auto_execute"
     assert runtime_payload["runtime_task"]["auto_execution_enabled"] is True
+    assert runtime_payload["runtime_task"]["decision"] == "auto_execute"
 
 
 def test_task_intake_blocks_mutation_that_exceeds_locked_project_rating(tmp_path):
@@ -250,6 +263,7 @@ def test_task_intake_blocks_mutation_that_exceeds_locked_project_rating(tmp_path
     assert result.routing.required_rating_upgrade == "M"
     assert result.routing.execution_decision == "blocked"
     assert result.routing.recommended_action == "blocked"
+    assert result.routing.decision == "block"
     assert runtime_payload["runtime_task"]["approval_state"] == "blocked"
     assert runtime_payload["runtime_task"]["requested_content_dimensions"]["gore_level"] == "extreme"
     assert runtime_payload["runtime_task"]["requested_content_dimensions"]["dismemberment"] is True
