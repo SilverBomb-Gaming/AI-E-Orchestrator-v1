@@ -271,6 +271,44 @@ function Sync-LauncherTraceToLog {
     $script:LauncherTraceSynced = $true
 }
 
+function Resolve-UnityExitCodeText {
+    param([System.Diagnostics.Process]$Process)
+
+    if (-not $Process) {
+        Write-LauncherTrace "UNITY_EXIT_REASON=process object unavailable"
+        return "UNKNOWN"
+    }
+
+    try {
+        if (-not $Process.HasExited) {
+            Write-LauncherTrace "UNITY_EXIT_REASON=process has not exited when exit code was requested"
+            return "UNKNOWN"
+        }
+    } catch {
+        Write-LauncherTrace ("UNITY_EXIT_REASON=failed to inspect process exit state: {0}" -f $_.Exception.Message)
+        return "UNKNOWN"
+    }
+
+    try {
+        $Process.Refresh()
+    } catch {
+        Write-LauncherTrace ("UNITY_EXIT_REASON=failed to refresh process state: {0}" -f $_.Exception.Message)
+    }
+
+    try {
+        $rawExitCode = $Process.ExitCode
+        $text = [string]$rawExitCode
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            Write-LauncherTrace "UNITY_EXIT_REASON=process exit code was blank after process exit"
+            return "UNKNOWN"
+        }
+        return [string]([int]$rawExitCode)
+    } catch {
+        Write-LauncherTrace ("UNITY_EXIT_REASON=failed to read process exit code: {0}" -f $_.Exception.Message)
+        return "UNKNOWN"
+    }
+}
+
 $resolvedProject = [System.IO.Path]::GetFullPath($ProjectPath)
 if (-not (Test-Path $resolvedProject)) {
     throw "Project path not found: $resolvedProject"
@@ -334,7 +372,7 @@ try {
     $process = Start-Process -FilePath $unityExe `
         -ArgumentList $argumentString `
         -WorkingDirectory $resolvedProject `
-        -NoNewWindow `
+        -WindowStyle Hidden `
         -PassThru
 
     $exited = $process.WaitForExit([Math]::Max(1, $TimeoutSec) * 1000)
@@ -344,9 +382,15 @@ try {
     }
 
     $process.WaitForExit()
-    $exitCode = $process.ExitCode
+    $exitCode = Resolve-UnityExitCodeText -Process $process
     Write-LauncherTrace "UNITY_EXIT_CODE=$exitCode"
     Write-Host "[run_unity_ci_probe] Unity exited with code $exitCode"
+    Write-Host "UNITY_EXIT_CODE=$exitCode"
+    if ($exitCode -ne "0") {
+        Write-Host ("UNITY_EXIT_REASON=unity_exit_{0}" -f $exitCode)
+    } else {
+        Write-Host "UNITY_EXIT_REASON=completed"
+    }
 
     if (-not (Test-Path $resolvedArtifact)) {
         throw "Artifact not produced at $resolvedArtifact"
@@ -396,7 +440,7 @@ try {
         }
     }
 
-    if ($exitCode -ne 0) {
+    if ($exitCode -ne "0") {
         Write-Warning "Unity returned exit code $exitCode, continuing because artifact validation passed."
     }
 
@@ -404,6 +448,8 @@ try {
     exit 0
 } catch {
     Write-LauncherTrace ("LAUNCHER_EXCEPTION={0}" -f $_)
+    Write-Host "UNITY_EXIT_CODE=1"
+    Write-Host "UNITY_EXIT_REASON=launcher_failed"
     Write-Error $_
     exit 1
 } finally {

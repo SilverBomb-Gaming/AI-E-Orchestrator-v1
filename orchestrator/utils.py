@@ -5,7 +5,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List, Tuple
 from uuid import uuid4
 
 from .time_utils import get_current_timestamp
@@ -45,19 +45,32 @@ def write_json(path: Path, payload: Dict[str, Any]) -> None:
 
 
 def read_json(path: Path, default: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    payload, _ = read_json_with_status(path, default=default)
+    return payload
+
+
+def read_json_with_status(path: Path, default: Dict[str, Any] | None = None) -> Tuple[Dict[str, Any], str | None]:
+    payload, issue, _ = read_json_with_status_details(path, default=default)
+    return payload, issue
+
+
+def read_json_with_status_details(
+    path: Path,
+    default: Dict[str, Any] | None = None,
+) -> Tuple[Dict[str, Any], str | None, List[str]]:
     if not path.exists():
-        return _clone_default(default)
+        return _clone_default(default), "missing", []
     try:
         raw = path.read_text(encoding="utf-8-sig")
     except OSError:
-        return _clone_default(default)
+        return _clone_default(default), "unreadable", []
     if not raw.strip():
-        return _clone_default(default)
+        return _clone_default(default), "empty", []
     try:
-        return json.loads(raw)
+        return json.loads(raw), None, []
     except json.JSONDecodeError as exc:
         print(f"[orchestrator] Warning: invalid JSON at {path}: {exc}")
-        return _clone_default(default)
+        return _clone_default(default), "invalid_json", _json_decode_error_details(raw, exc)
 
 
 def _clone_default(default: Dict[str, Any] | None) -> Dict[str, Any]:
@@ -71,6 +84,26 @@ def _clone_default(default: Dict[str, Any] | None) -> Dict[str, Any]:
         except Exception:
             pass
     return {}
+
+
+def _json_decode_error_details(raw: str, exc: json.JSONDecodeError) -> List[str]:
+    details = [f"line:{exc.lineno}", f"column:{exc.colno}"]
+    message = str(exc.msg or "").lower()
+    stripped = raw.rstrip()
+    eof_position = len(raw)
+
+    if exc.pos >= max(0, eof_position - 1) or exc.pos >= len(stripped):
+        details.append("decode_error:unexpected_eof")
+    elif "unterminated string" in message:
+        details.append("decode_error:unterminated_string")
+    elif "expecting value" in message:
+        details.append("decode_error:missing_value")
+    elif "expecting property name enclosed in double quotes" in message:
+        details.append("decode_error:invalid_object_key")
+    else:
+        details.append("decode_error:invalid_json")
+
+    return details
 
 
 def safe_write_text(path: Path, content: str) -> None:
@@ -126,3 +159,18 @@ def append_live_event(payload: Dict[str, Any], root: Path | None = None) -> None
     except Exception:
         # Event emission must never block orchestration.
         return
+
+
+__all__ = [
+    "append_live_event",
+    "ensure_dir",
+    "parse_patch_stats",
+    "read_json",
+    "read_json_with_status",
+    "read_json_with_status_details",
+    "safe_write_text",
+    "slugify",
+    "utc_timestamp",
+    "within_scope",
+    "write_json",
+]
